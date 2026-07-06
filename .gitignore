@@ -1,0 +1,10 @@
+# Obsidian volatile UI state — changes on every click, no research value
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Obsidian local trash
+.trash/
+
+# Windows debris
+Thumbs.db
+desktop.ini
