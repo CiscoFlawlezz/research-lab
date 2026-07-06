@@ -1,0 +1,3 @@
+**Status:** Decaying — deferred ambitions, not commitments. Revisit trigger: V2 exit gate result known (per Master Spec §9).
+
+The original project mission (superseded 2026-07-06, see Decision Log) included ambitions beyond the current scope: identifying statistically profitable opportunities in prediction markets and the stock market, incorporating historical data, public information, and tracking of widely-followed public figures' disclosed trading activity. These are preserved here as candidate future directions, each requiring its own domain audit per Master Spec §13 before admission. None are active. Standing exclusions until re-admitted by ADR: live capital deployment, stock-market analysis, political-figure trading data.
