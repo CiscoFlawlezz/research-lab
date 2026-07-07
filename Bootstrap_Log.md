@@ -20,6 +20,31 @@ push
 2026-07-06 ---- [ ] **R5 — Off-machine backup with tested restore.** Establish a scheduled backup of `data/`, `snapshots/`, and BOTH Git repositories to an off-machine location (external drive kept unplugged between backups, and/or a cloud remote). Then perform a TEST RESTORE into a scratch folder and confirm the database opens and the vault loads. An untested backup is a hypothesis, not a backup. (Source: Master Spec §10 R5, Appendix A item 3.)
 - Done means: a file deleted from the live folder can be recovered from the backup in a test, AND the restored SQLite database passes an integrity check.
 
+## [M0.T1] Bootstrap Section 2 closed: git version + commit identity verified — 2026-07-06
+
+Shell: Git Bash (MINGW64)
+
+$ git --version
+git version 2.55.0.windows.2
+
+$ git config --global --list
+user.name=rjkir
+user.email=rjkirby316@gmail.com
+
+$ git config --system --list   (installer settings confirmed here, not in --global)
+core.autocrlf=false
+core.editor=notepad
+credential.helper=manager
+init.defaultbranch=main
+(plus git-lfs filters, ssl backend, fscache — installer defaults)
+
+$ git config --get init.defaultbranch
+main
+
+Acceptance: MET — user.name and user.email present and correct.
+Contradiction resolved: installer settings (branch/editor/line-endings/GCM)
+live in --system, not --global. Graph §0 assumptions now VERIFIED against
+terminal output. Default branch = main confirmed ahead of M0.T2.
 
 
 
