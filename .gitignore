@@ -1,10 +1,14 @@
-# Obsidian volatile UI state — changes on every click, no research value
+# --- Obsidian per-machine workspace state (not knowledge) ---
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
+.obsidian/cache
 
-# Obsidian local trash
-.trash/
+# --- Large local data snapshots stored beside notes, if any ---
+Data/*.sqlite
+Data/*.db
+*.zip
 
-# Windows debris
+# --- OS junk ---
 Thumbs.db
-desktop.ini
+Desktop.ini
+.DS_Store
