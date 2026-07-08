@@ -1,5 +1,35 @@
 # Prediction Market Lab  
-  
+
+# MOC — Home
+
+   ## Governance
+   - [[Research Methodology v2]]
+   - [[Master Roadmap]]
+   - [[Current Sprint]]
+   - [[Decision Log]]
+   - [[ADR-022 — Vault Folder Scheme (Hybrid)]]
+   - [[Bootstrap_Log]]
+
+   ## Core Concepts
+   - [[MOC_Probability_and_Scoring]]
+
+   ## Registers
+   - [[Open Questions]]
+   - [[Prediction_Ledger]]
+   - [[Experiment Log]]
+
+   ## Data Sources
+   - [[Kalshi API]]
+   - [[Kalshi Ticker Anatomy and Market Structure]]
+   - [[National Weather Service]]
+   - [[NOAA]]
+   - [[FRED]]
+   - [[Google Trends]]
+
+   ## AI and Tooling
+   - [[Claude]]
+   - [[Prompt Library]]
+   - [[AI Ideas]]
 ## Active Project  
   
 > Build an AI capable of identifying profitable opportunities in prediction markets.  

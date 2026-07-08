@@ -46,5 +46,7 @@ Contradiction resolved: installer settings (branch/editor/line-endings/GCM)
 live in --system, not --global. Graph §0 assumptions now VERIFIED against
 terminal output. Default branch = main confirmed ahead of M0.T2.
 
+2026-07-07 — Vault walkthrough Sections 3–7 complete per ADR-022: hybrid scheme applied, duplicate resolved (scoring rules note archived), 15 empty placeholders deleted, 5 seeds retained, MOC_Home + MOC_Probability_and_Scoring + Prediction_Ledger created, orphan sweep passed.
+
 
 

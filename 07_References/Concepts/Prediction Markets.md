@@ -1,3 +1,9 @@
+---
+type: reference
+status: seed
+created: 2026-07-07
+---
+
 # Prediction Markets — Quantitative Research Synthesis
 
 ## Research Lab Permanent Knowledge Base Document
