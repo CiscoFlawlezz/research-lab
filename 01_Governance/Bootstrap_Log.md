@@ -48,6 +48,64 @@ terminal output. Default branch = main confirmed ahead of M0.T2.
 
 2026-07-07 — Vault walkthrough Sections 3–7 complete per ADR-022: hybrid scheme applied, duplicate resolved (scoring rules note archived), 15 empty placeholders deleted, 5 seeds retained, MOC_Home + MOC_Probability_and_Scoring + Prediction_Ledger created, orphan sweep passed.
 
+2026-07-09 — Confirmed: no Windows Task Scheduler auto-backup task exists for weather-pipeline (only the vault has one). Pipeline currently backed up by manual commit only. Flagged against Risk R5. To be scheduled before first live data collection.
+
+## 2026-07-09 — Milestone 1b Gate 1 & 2 COMPLETE: Settlement station verification
+
+**Gate 1 — Station ID verification (Master Spec R1 mitigation).** Verified all five
+settlement stations against Kalshi's official market rules pages. Five snapshots saved
+to `snapshots/2026-07-09_station_verification/`. All five candidate stations CONFIRMED
+correct against primary source; zero station_id corrections required.
+
+| City    | Kalshi rulebook | Settlement location (per rules) | station_id | Result   |
+|---------|-----------------|----------------------------------|------------|----------|
+| Phoenix | (KXHIGHTPHX)    | Phoenix Sky Harbor               | KPHX       | VERIFIED |
+| NYC     | NHIGH           | Central Park, New York (wfo=okx) | KNYC       | VERIFIED |
+| Chicago | CHIHIGH         | Chicago Midway, Illinois (wfo=lot)| KMDW      | VERIFIED |
+| Miami   | MIAHIGH         | Miami, FL                        | KMIA       | VERIFIED |
+| Austin  | AUSHIGH         | Austin Bergstrom                 | KAUS       | VERIFIED |
+
+**Gate 2 — NWS user-agent email.** Confirmed correct in config.yaml
+(user_agent: "prediction-market-research-lab (ryaneastnc@gmail.com)"). No change needed.
+
+**config.yaml updated:** all five cities flipped `verified: false` → `verified: true`;
+station_id comments updated to cite primary source + date; header comment block updated.
+
+### FINDINGS RECORDED (do not lose these — they affect data validity)
+
+**F1 — Settlement source is the NWS Daily Climate Report (CLI product), not raw station obs.**
+Rules route to the NWS Daily Climate Report for a named location via WFO office
+(e.g., Chicago → wfo=lot → "Chicago Midway, IL"; NYC → wfo=okx → "Central Park NY"),
+column "Observed Value", row "Maximum". The authoritative settlement value is the
+Daily Climate Report maximum, which can differ from raw METAR hourly obs. The NWS
+collector MUST pull the Daily Climate Report figure, not the station's raw max, or
+scored outcomes will not match Kalshi settlement. Flagged as R1-adjacent. Open until
+collector design confirms it reads the CLI product.
+
+**F2 — Series tickers (KXHIGH...) are NOT verified by this task.** The rules pages are
+headed by contract rulebook codes (CHIHIGH, MIAHIGH, NHIGH, AUSHIGH), not the KXHIGH...
+series tickers in config. Only KXHIGHTPHX was confirmed via a live market URL. The other
+four series are "confirmed to exist via test_connections.py" (API existence, E-lower)
+but NOT confirmed via primary-source rules page. Series-ticker verification remains an
+open sub-task, distinct from station verification.
+
+**F3 — Per-city settlement subtleties.**
+- Miami & Austin: determination delayed to 11:00 AM ET if high is inconsistent with
+  6-hr/24-hr METAR highs, or if final report high is lower than earlier report(s).
+- Austin: trades on CT (Last Trading Time 11:59 PM CT); the other four are ET.
+  Day-boundary / timezone handling must be per-city.
+- Day boundary is NWS Daily Climate Report / local standard time — shifts under DST.
+  Do not assume local-clock midnight.
+
+**Evidence grade:** This verification is E4 (Architect testimony) ratified against five
+saved PDF snapshots (primary source). Snapshots are the evidence; the pasted text
+transcription was a convenience copy only.
+
+**Milestone 1b Gate 1 & 2: CLOSED.** NWS collectors are now unblocked on the station
+question. Remaining pre-collection blockers: F1 (collector must read CLI product) and
+F2 (series-ticker rules verification).
+
+
 
 
 
