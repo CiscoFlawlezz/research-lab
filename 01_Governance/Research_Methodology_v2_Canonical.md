@@ -1,3 +1,16 @@
+
+## Governance
+- [[Research Methodology v2_canonical]]
+- [[Research_Lab_Master_Specification_v1]]
+- [[Master Roadmap]]
+- [[Learning Roadmap]]
+- [[Pre_Implementation_Artifact_roadmap_v1]]
+- [[Current Sprint]]
+- [[Decision Log]]
+- [[ADR_Collection_v2.0]]
+- [[ADR-022 — Vault Folder Scheme (Hybrid)]]
+- [[Future_Directions.md]]
+- [[Bootstrap_Log]]
 # Research Methodology (Canonical)
 *Version 2.0 — supersedes v1.0 per ADR-002. This is the canonical research workflow for the project.*
 *Review annually, or immediately after any process failure. Last reviewed: 2026-07-04.*

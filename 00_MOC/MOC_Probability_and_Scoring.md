@@ -10,5 +10,5 @@
    - [[Expected Value]] (seed)
    - [[Kelly Criterion]] (seed)
    - [[Prediction Markets]] (seed)
-
+- [[Scoring Rules Bibliography - Ranked]]
    Linked from [[MOC_Home]].
