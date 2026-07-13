@@ -10,7 +10,7 @@
 
 **Bracket market (Kalshi `B###.#`)** — Contract paying if the outcome falls in a range. Ordered brackets of one event form a discrete distribution. → [[Kalshi Ticker Anatomy and Market Structure]]
 
-**Brier score (BS)** — Mean squared error of probability forecasts, $\frac{1}{N}\sum(p_i-y_i)^2$. Strictly proper; 0 perfect, 0.25 = always saying 50%. → [[Proper Scoring Rules and Calibration - Technical Reference]]
+**Brier score (BS)** — Mean squared error of probability forecasts, $\frac{1}{N}\sum(p_i-y_i)^2$. Strictly proper; 0 perfect, 0.25 = always saying 50%. → [[Proper Scoring Rules and Calibration - Technical Reference (V2)]]
 
 **Brier Skill Score (BSS)** — $1 - \text{BS}/\text{BS}_{\text{ref}}$. Positive = better than reference. Report it, never optimize it directly (skill scores are themselves improper).
 

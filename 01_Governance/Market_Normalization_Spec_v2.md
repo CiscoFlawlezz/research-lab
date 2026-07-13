@@ -17,7 +17,7 @@ tags: [prediction-markets, normalization, microstructure, kalshi, pre-registrati
 
 # Market-Implied Probability Normalization Specification (A4)
 
-**Cross-links:** [[Edge Detection]] · [[Kalshi Ticker Anatomy and Market Structure]] · [[Kalshi API]] · [[Prediction Markets]] · [[Market Microstructure]] · [[Statistical Arbitrage]] · [[Effective Sample Size]] · [[Proper Scoring Rules and Calibration - Technical Reference]] · [[Expected Value]] · [[Research Lab Master Specification]] · [[Glossary]] · [[Open Questions]]
+**Cross-links:** [[Edge Detection]] · [[Kalshi Ticker Anatomy and Market Structure]] · [[Kalshi API]] · [[Prediction Markets]] · [[Market Microstructure]] · [[Statistical Arbitrage]] · [[Effective Sample Size]] · [[Proper Scoring Rules and Calibration - Technical Reference (V2)]] · [[Expected Value]] · [[Research Lab Master Specification]] · [[Glossary]] · [[Open Questions]]
 
 > **Provenance note (Invariant 3).** This is an AI-drafted specification. Its structural claims about Kalshi (ticker format, quote-without-trade behavior, `_dollars`/`_fp` field regime, DCR settlement) are **inherited from [[Kalshi Ticker Anatomy and Market Structure]]**, which records them as empirical findings from the Milestone 1a live run — treat those as the grade that note carries, not as re-verified here. The fee formula, the specific staleness thresholds, and every numeric parameter below are **E4 (testimony)** proposals to be confirmed against Kalshi's published fee schedule and the collector's actual captured fields before this document is stamped canonical. This is a design ADR, not a finding.
 
@@ -252,7 +252,7 @@ Before this leaves draft and is stamped canonical (per Invariant 3, architect ac
 - [[Institutional Knowledge Transfer v1]] §candidate-losses — the A3/A4 collection-gap dependency (bid/ask depth non-backfillable).
 - Pre_Implementation_Artifact_Roadmap_v1 §A4 — scope definition (mid vs. microprice vs. last-trade; fees; staleness; coverage; sum-to-one; liquidity).
 - Microprice / order-imbalance microstructure lineage — Kyle (1985), Stoll (1989), and the depth-weighted fair-price literature (confirm specific citations at Lit-note stage).
-- Overround / vig in betting markets — standard bookmaking references; connect to favorite–longshot literature already in [[Proper Scoring Rules and Calibration - Technical Reference]] (Thaler & Ziemba 1988; Snowberg & Wolfers 2010).
+- Overround / vig in betting markets — standard bookmaking references; connect to favorite–longshot literature already in [[Proper Scoring Rules and Calibration - Technical Reference (V2)]] (Thaler & Ziemba 1988; Snowberg & Wolfers 2010).
 
 ---
 

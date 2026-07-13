@@ -1,7 +1,7 @@
 # MOC — Probability and Scoring
 
    - [[Probability]]
-   - [[Proper Scoring Rules and Calibration - Technical Reference]]
+   - [[Proper Scoring Rules and Calibration - Technical Reference (V2)]]
    - [[Brier Decomposition]]
    - [[Log Score and Kelly Identity]]
    - [[Effective Sample Size]]

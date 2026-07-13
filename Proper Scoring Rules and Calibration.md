@@ -1,0 +1,223 @@
+**Vault location:** `01 Research/Probability` **Level:** Quantitative researcher reference (assumes probability theory, basic information theory, statistical inference) **Cross-links:** [[Edge Detection]] · [[Expected Value]] · [[Kelly Criterion]] · [[Prediction Markets]] · [[Bayesian Statistics]] · [[Weather Model]] **Status:** Foundational — prerequisite for all modeling milestones **Created:** 2026-07-04 **Note on math rendering:** formulas use LaTeX; Obsidian renders `$...$` natively.
+
+---
+
+## Overview
+
+[](https://github.com/CiscoFlawlezz/research-lab/blob/main/07_References/Concepts/Proper%20Scoring%20Rules%20and%20Calibration%20-%20Technical%20Reference.md#overview)
+
+A **scoring rule** is a function S(P,y) assigning a numerical score to a probabilistic forecast P when outcome y materializes. Let S(P,Q)=Ey∼Q[S(P,y)] denote the expected score of report P under true distribution Q. Using the positively oriented convention (higher is better):
+
+- S is **proper** if S(Q,Q)≥S(P,Q) for all P,Q — truthful reporting is optimal in expectation.
+- S is **strictly proper** if equality holds only when P=Q — truthful reporting is _uniquely_ optimal.
+
+For a binary event with reported probability p, outcome y∈0,1, and true probability q: propriety means arg⁡maxp,[,q,S(p,1)+(1−q),S(p,0),]=q.
+
+**Calibration** is a property of a forecast–outcome _sequence_: forecasts are calibrated if, conditionally on the forecast value, the empirical frequency matches it — informally, Pr(Y=1∣p^=p)=p. **Sharpness** is a property of the forecasts alone: the concentration of the predictive distributions (distance from the unconditional base rate). The governing paradigm of modern forecast verification (Gneiting, Balabdaoui & Raftery 2007): **maximize sharpness subject to calibration.**
+
+These two frameworks — proper scores for incentive-compatible evaluation, calibration/sharpness for diagnosis — are the measurement theory of this entire project.
+
+---
+
+## Why it matters
+
+[](https://github.com/CiscoFlawlezz/research-lab/blob/main/07_References/Concepts/Proper%20Scoring%20Rules%20and%20Calibration%20-%20Technical%20Reference.md#why-it-matters)
+
+**1. The success metric problem.** The charter defines success as measurable probability estimates. Scoring rules are the measurement. Every model acceptance decision, every backtest verdict, every edge claim reduces to a statement about scores.
+
+**2. Incentive compatibility is not automatic.** Most intuitive metrics (accuracy, MAE on probabilities, "how often was the favorite right") are _improper_: they are optimized by reporting something other than your true belief. An evaluation pipeline built on an improper metric will systematically select for distorted models — typically overconfident ones — while appearing rigorous. This is a silent, compounding failure mode.
+
+**3. The direct bridge to P&L.** For log score specifically, there is an exact identity (derived below): the expected log-growth rate of a Kelly bettor trading against market price r with belief p equals the expected log-score difference between the bettor's forecast and the market's. **"My forecasts log-score better than the prices" and "I have positive expected log growth before costs" are the same mathematical statement.** Edge detection _is_ score comparison.
+
+**4. Self-deception defense.** Single outcomes cannot validate probabilities; hindsight and selective memory grade generously. Scores replace narrative with arithmetic, and the decomposition (below) localizes _why_ a forecaster is good or bad — miscalibration and lack of resolution demand opposite remedies.
+
+---
+
+## Mathematical intuition
+
+[](https://github.com/CiscoFlawlezz/research-lab/blob/main/07_References/Concepts/Proper%20Scoring%20Rules%20and%20Calibration%20-%20Technical%20Reference.md#mathematical-intuition)
+
+### The convexity characterization (Savage representation)
+
+[](https://github.com/CiscoFlawlezz/research-lab/blob/main/07_References/Concepts/Proper%20Scoring%20Rules%20and%20Calibration%20-%20Technical%20Reference.md#the-convexity-characterization-savage-representation)
+
+Propriety has a clean geometric structure. A binary scoring rule is proper **iff** there exists a convex function G:[0,1]→R (the _generalized entropy_) such that the expected score of reporting p under truth q is the tangent line of G at p, evaluated at q:
+
+S(p,q)=G(p)+G′(p),(q−p)≤G(q),
+
+with equality at p=q. Convexity is exactly what makes the tangent lie below the curve — i.e., what makes honesty optimal. Strict convexity ⇔ strictly proper. Every proper scoring rule is a choice of convex G; conversely (Schervish 1989) every proper binary rule is a mixture of elementary threshold decision problems, meaning a proper score is implicitly an average of the economic losses of decision-makers acting on your stated probability across all cost thresholds.
+
+Two canonical instances:
+
+**Brier / quadratic score.** S(p,y)=−(p−y)2, generated by G(q)=−q(1−q) (negative variance). As a loss: BS=1N∑i(pi−yi)2∈[0,1], lower better; the constant forecast p=y¯ ... and p=0.5 always scores 0.25.
+
+**Logarithmic score.** S(p,y)=yln⁡p+(1−y)ln⁡(1−p), generated by G(q)=qln⁡q+(1−q)ln⁡(1−q) (negative Shannon entropy). Uniquely (up to affine transformation) the only smooth, **local** strictly proper rule — locality meaning the score depends only on the probability assigned to the realized outcome (Bernardo 1979). The expected score gap between truth and report is exactly Kullback–Leibler divergence:
+
+S(q,q)−S(p,q)=DKL(q,|,p).
+
+Log score punishes tail miscalibration without bound (−ln⁡0=∞): assigning zero probability to anything that can happen is infinitely penalized. Brier is bounded and tolerant of rare confident misses. Computing both is cheap; divergence between their rankings is a diagnostic that tail behavior differs between models.
+
+### Why improper rules fail: worked example
+
+[](https://github.com/CiscoFlawlezz/research-lab/blob/main/07_References/Concepts/Proper%20Scoring%20Rules%20and%20Calibration%20-%20Technical%20Reference.md#why-improper-rules-fail-worked-example)
+
+Under absolute loss |p−y| with true probability q, expected loss is q(1−p)+(1−q)p=q+p(1−2q), linear in p — minimized at p=1 for q>12 and p=0 for q<12. MAE pays you to report certainty you don't have. Accuracy/hit-rate is the same degeneracy. AUC measures discrimination (ranking) only and is silent on calibration: a model can have AUC 0.9 and be uselessly miscalibrated for pricing.
+
+### The Murphy decomposition
+
+[](https://github.com/CiscoFlawlezz/research-lab/blob/main/07_References/Concepts/Proper%20Scoring%20Rules%20and%20Calibration%20-%20Technical%20Reference.md#the-murphy-decomposition)
+
+Bin forecasts into K groups with sizes nk, mean forecast p¯k, observed frequency o¯k, overall base rate o¯:
+
+BS=1N∑knk(p¯k−o¯k)2⏟Reliability (calibration error, ↓);−;1N∑knk(o¯k−o¯)2⏟Resolution (sharpness that pays, ↑);+;o¯(1−o¯)⏟Uncertainty (fixed)
+
+Reliability and resolution are the calibration/sharpness virtues made additive; uncertainty is the base-rate variance no forecaster controls. Diagnosis dictates remedy: high reliability term → recalibrate outputs (isotonic regression, Platt scaling); low resolution → the model lacks information, needs better features. Note the estimators are biased in small bins — see Limitations.
+
+### Multi-bracket events: RPS and CRPS
+
+[](https://github.com/CiscoFlawlezz/research-lab/blob/main/07_References/Concepts/Proper%20Scoring%20Rules%20and%20Calibration%20-%20Technical%20Reference.md#multi-bracket-events-rps-and-crps)
+
+Kalshi temperature events are m **ordered** brackets. Scoring brackets as independent binaries discards ordering (missing by 1°F ≠ missing by 8°F). The **ranked probability score** compares cumulative distributions: with forecast CDF Fk=∑j≤kpj and outcome CDF Ok,
+
+RPS=∑k=1m−1(Fk−Ok)2.
+
+Its continuous limit is the **CRPS** (Matheson & Winkler 1976):
+
+CRPS(F,y)=∫−∞∞(F(x)−1x≥y)2,dx=EF|X−y|−12,EF|X−X′|,
+
+which rewards concentrated distributions centered near the outcome and reduces to absolute error for point forecasts. Project convention: per-contract Brier/log for market-vs-model comparisons; RPS (or CRPS on the underlying temperature distribution) for grading a model's full distributional output.
+
+### Skill scores and inference on score differences
+
+[](https://github.com/CiscoFlawlezz/research-lab/blob/main/07_References/Concepts/Proper%20Scoring%20Rules%20and%20Calibration%20-%20Technical%20Reference.md#skill-scores-and-inference-on-score-differences)
+
+Absolute scores are incomparable across event sets (Miami is more predictable than a fair coin). Skill is relative:
+
+BSS=1−BSforecastBSreference.
+
+Caveat known since Murphy: skill scores constructed this way are themselves generally **improper** — optimizing BSS directly can differ subtly from optimizing BS. Use BSS for reporting, proper scores for optimization and testing.
+
+To test "forecaster A beats forecaster B," compute paired score differentials di=SA(i)−SB(i) on the _same_ events and test E[d]>0 with dependence-robust variance — the Diebold–Mariano (1995) framework with HAC standard errors, or block/cluster bootstrap resampling by date, since same-day and nearby-day outcomes are correlated (regional weather systems). Never compare scores computed on different event sets.
+
+### The Kelly–log-score identity (the bridge to trading)
+
+[](https://github.com/CiscoFlawlezz/research-lab/blob/main/07_References/Concepts/Proper%20Scoring%20Rules%20and%20Calibration%20-%20Technical%20Reference.md#the-kellylog-score-identity-the-bridge-to-trading)
+
+Binary contract: YES pays $1, market price r; two-sided, frictionless. A log-utility (Kelly) trader with belief p allocates wealth so terminal wealth is proportional to belief: fraction p into YES at price r, 1−p into NO at price 1−r. Growth factor is p/r if Y=1, (1−p)/(1−r) if Y=0. Under true probability q:
+
+Eq[ln⁡growth]=[qln⁡p+(1−q)ln⁡(1−p)]−[qln⁡r+(1−q)ln⁡(1−r)]=DKL(q|r)−DKL(q|p).
+
+The bracketed terms are precisely the expected **log scores** of your forecast and the market's. Consequences: (i) positive expected log growth ⇔ your log score beats the market's on those events; (ii) the market is unbeatable in expectation iff its prices equal true probabilities; (iii) fees and spread enter as a constant drag, so the _tradeable_ condition is score-edge exceeding a cost threshold, not merely positive. This identity is why log score is not just one metric among many for this project — it is denominated in the same units as compounding wealth.
+
+---
+
+## Common mistakes
+
+[](https://github.com/CiscoFlawlezz/research-lab/blob/main/07_References/Concepts/Proper%20Scoring%20Rules%20and%20Calibration%20-%20Technical%20Reference.md#common-mistakes)
+
+1. **Grading with improper metrics** (accuracy, MAE, win-rate, AUC-as-quality). Breeds overconfident models while looking rigorous.
+2. **Validating probabilities with single outcomes** ("the 85% call was right"). Probabilities are only testable in aggregate.
+3. **Comparing raw scores across different event sets.** Question difficulty dominates; always use common events + paired differentials, or skill vs a shared reference.
+4. **Ignoring dependence.** Our structure is extreme: ~6 brackets per city-day resolve from _one_ temperature draw (one observation, not six), and cities co-move under regional systems. Naive n = 900/month; honest unit = city-day (~150/month), further discounted for spatial correlation. All standard errors must cluster by date (or block-bootstrap by date).
+5. **Overreading early calibration curves.** Bin frequencies carry binomial noise p(1−p)/nk; at nk=10 and p=0.7 the SE is ±14.5pp. Reliability diagrams need consistency/bootstrap bands and hundreds of forecasts before shape is signal.
+6. **ECE binning artifacts.** Expected calibration error ∑knkN|o¯k−p¯k| is sensitive to bin count/placement; report with multiple binnings or use binning-free alternatives alongside.
+7. **In-sample references.** Computing BSS against climatology _estimated on the evaluation sample_ flatters skill. References must be fixed out-of-sample.
+8. **Selection and multiple testing.** Scoring only markets you chose to examine, or scanning many cities/horizons and reporting the best — pre-register event sets and correct for multiplicity.
+9. **Recalibration overfitting.** Isotonic regression on small samples memorizes noise; recalibrate on held-out data only.
+10. **Sloppy market-price extraction.** Last trade in a thin market is stale (our own 1a data showed live quotes with zero volume). Bid/ask midpoint at a defined timestamp is the default probability proxy; the choice must be fixed _before_ scoring.
+
+---
+
+## How prediction markets use this concept
+
+[](https://github.com/CiscoFlawlezz/research-lab/blob/main/07_References/Concepts/Proper%20Scoring%20Rules%20and%20Calibration%20-%20Technical%20Reference.md#how-prediction-markets-use-this-concept)
+
+**Prices are forecasts.** A binary contract's price (midpoint) is the market's probability report, scoreable exactly like a model. Market calibration is an empirical, testable property — the long betting-markets literature documents the **favorite–longshot bias** (longshots systematically overpriced; Thaler & Ziemba 1988), with competing explanations — risk preference vs probability misperception — analyzed in Snowberg & Wolfers (2010). Whether any such pattern exists in Kalshi weather brackets is unknown and is this project's natural first empirical study.
+
+**Market mechanisms are literally built from scoring rules.** Hanson's Logarithmic Market Scoring Rule (LMSR) market maker — cost function C(q)=bln⁡∑ieqi/b, prices given by the softmax of outstanding quantities — implements a _shared sequential log score_: each trader's profit equals the improvement of the market's log score that their trade produces. Kalshi runs a central limit order book, not an LMSR, but the Kelly identity above shows the same conceptual equivalence holds for CLOB trading: **trading profit (in log-growth terms, before costs) ≡ out-scoring the market's implied forecast.**
+
+**Operational translation for this project:**
+
+- Reference ladder for skill: climatology → raw NWS forecast → **market price**. Positive, dependence-robust log/Brier skill vs market prices is the precise statistical meaning of "edge."
+- Necessary vs sufficient: score-edge is necessary for profit; sufficiency additionally requires the edge to exceed fees + effective spread at executable prices ([[Expected Value]], out of scope until a later milestone).
+- Proposed Experiment #1 (model-free): calibration curve + Brier/log score of Kalshi closing midpoints vs settlements, per city and pooled, with date-clustered bootstrap bands. Answers "how efficient is the competition?" before any model exists.
+
+---
+
+## Unknowns
+
+[](https://github.com/CiscoFlawlezz/research-lab/blob/main/07_References/Concepts/Proper%20Scoring%20Rules%20and%20Calibration%20-%20Technical%20Reference.md#unknowns)
+
+Explicitly open questions, not settled by this document:
+
+1. **Kalshi weather-market calibration** — no evidence yet either way; Experiment #1 target.
+2. **Correct market-forecast extraction** — midpoint vs time-weighted midpoint vs microprice; how to handle wide/crossed/absent quotes near settlement. Must be fixed pre-analysis.
+3. **Effective sample size** — magnitude of cross-city, cross-day correlation in outcomes and in score differentials; determines real statistical power and required collection duration.
+4. **Decomposition stability at our n** — whether reliability/resolution estimates are usable at monthly scale or only quarterly+.
+5. **Nonstationarity** — market efficiency plausibly improves over time (more sophisticated participants); scores estimated on old data may not represent current competition.
+6. **Historical forecast archives** (NCEI/IEM) — if usable, they multiply sample size immediately; unverified (open task from Milestone 1).
+
+---
+
+## Limitations
+
+[](https://github.com/CiscoFlawlezz/research-lab/blob/main/07_References/Concepts/Proper%20Scoring%20Rules%20and%20Calibration%20-%20Technical%20Reference.md#limitations)
+
+Of the framework itself, independent of our data:
+
+- **Propriety is an expectation property.** It guarantees honest reporting maximizes _expected_ score; finite-sample and tournament settings (rank-based rewards) can reintroduce incentives to deviate.
+- **Calibration alone is nearly free.** Foster & Vohra (1998) show randomized forecasting can achieve asymptotic calibration against _any_ outcome sequence with no predictive knowledge whatsoever. Calibration is necessary, not sufficient; resolution is where information lives. Relatedly, Dawid (1982): a coherent Bayesian expects herself to be calibrated — self-assessed calibration is weak evidence.
+- **Scores measure forecast quality, not economic value** — except via the log/Kelly identity, and even that ignores costs, capacity, price impact, and capital constraints.
+- **Decomposition estimators are biased** in small bins; ECE depends on binning choices.
+- **No cross-event-set comparability.** Scores rank forecasters on shared events only.
+- **Stationarity assumptions** underlie all inference on score differentials; regime change (market structure, climate trends in the underlying) degrades them.
+
+---
+
+## Key papers
+
+[](https://github.com/CiscoFlawlezz/research-lab/blob/main/07_References/Concepts/Proper%20Scoring%20Rules%20and%20Calibration%20-%20Technical%20Reference.md#key-papers)
+
+_(Canonical references; verify bibliographic details against the originals when filing — this list is from memory and should be spot-checked, per project rules.)_
+
+- Brier, G.W. (1950). "Verification of forecasts expressed in terms of probability." _Monthly Weather Review._ — origin of the quadratic score.
+- Good, I.J. (1952). "Rational decisions." _JRSS-B._ — the logarithmic score.
+- Kelly, J.L. (1956). "A new interpretation of information rate." _Bell System Technical Journal._ — log-growth betting; the profit bridge.
+- Savage, L.J. (1971). "Elicitation of personal probabilities and expectations." _JASA._ — propriety and the convex-function representation.
+- Murphy, A.H. (1973). "A new vector partition of the probability score." _Journal of Applied Meteorology._ — reliability/resolution/uncertainty decomposition.
+- Matheson, J.E. & Winkler, R.L. (1976). "Scoring rules for continuous probability distributions." _Management Science._ — CRPS.
+- Bernardo, J.M. (1979). "Expected information as expected utility." _Annals of Statistics._ — locality characterization of the log score.
+- Dawid, A.P. (1982). "The well-calibrated Bayesian." _JASA._ — prequential calibration.
+- Thaler, R. & Ziemba, W. (1988). "Anomalies: parimutuel betting markets." _Journal of Economic Perspectives._ — favorite–longshot bias survey.
+- Schervish, M.J. (1989). "A general method for comparing probability assessors." _Annals of Statistics._ — decision-theoretic mixture representation.
+- Diebold, F.X. & Mariano, R.S. (1995). "Comparing predictive accuracy." _Journal of Business & Economic Statistics._ — inference on score differentials.
+- Foster, D.P. & Vohra, R. (1998). "Asymptotic calibration." _Biometrika._ — calibration is achievable without knowledge.
+- Hanson, R. (2003/2007). "Combinatorial information market design" / "Logarithmic market scoring rules for modular combinatorial information aggregation." — LMSR; markets as scoring rules.
+- Wolfers, J. & Zitzewitz, E. (2004). "Prediction markets." _Journal of Economic Perspectives._ — economics of prediction markets.
+- Gneiting, T. & Raftery, A.E. (2007). "Strictly proper scoring rules, prediction, and estimation." _JASA._ — the modern synthesis; single most important reference here.
+- Gneiting, T., Balabdaoui, F. & Raftery, A.E. (2007). "Probabilistic forecasts, calibration and sharpness." _JRSS-B._ — sharpness-subject-to-calibration paradigm.
+- Snowberg, E. & Wolfers, J. (2010). "Explaining the favorite–long shot bias: Is it risk-love or misperceptions?" _Journal of Political Economy._
+
+## Further reading
+
+[](https://github.com/CiscoFlawlezz/research-lab/blob/main/07_References/Concepts/Proper%20Scoring%20Rules%20and%20Calibration%20-%20Technical%20Reference.md#further-reading)
+
+- Tetlock, P. & Gardner, D. — _Superforecasting_ (practice of calibration training and aggregation; accessible).
+- Cover, T. & Thomas, J. — _Elements of Information Theory_, gambling/portfolio chapters (Kelly, log-optimality, KL — rigorous treatment of the identity above).
+- Jolliffe, I.T. & Stephenson, D.B. (eds.) — _Forecast Verification: A Practitioner's Guide in Atmospheric Science_ (the applied-meteorology verification toolbox; directly relevant to weather markets).
+- Silver, N. — _The Signal and the Noise_, weather chapter (why NWS forecasts are among the best-calibrated human-produced forecasts — i.e., why this market's competition is strong).
+- Foster & Hart, and the ML calibration literature (Platt scaling, isotonic regression, modern ECE critiques) when we reach the recalibration stage.
+
+## Suggested Obsidian notes
+
+[](https://github.com/CiscoFlawlezz/research-lab/blob/main/07_References/Concepts/Proper%20Scoring%20Rules%20and%20Calibration%20-%20Technical%20Reference.md#suggested-obsidian-notes)
+
+New notes to create, each small and linkable:
+
+1. `01 Research/Probability/Proper Scoring Rules & Calibration` — **this document.**
+2. `01 Research/Probability/Brier Decomposition` — worked numerical example once real pipeline data exists; keep formulas + a live table.
+3. `01 Research/Probability/Log Score ↔ Kelly Identity` — the derivation above, standalone; link from [[Kelly Criterion]] and [[Expected Value]].
+4. `05 Models/Edge Detection` — **update**: define edge formally as positive dependence-robust skill vs market reference; add the reference ladder (climatology → NWS → market).
+5. `07 Experiments/Experiment 1 — Market Calibration Study` — pre-registration stub: event set, price-extraction rule (unknown #2), metrics, clustering scheme. Fill before running.
+6. `01 Research/Probability/Effective Sample Size` — the city-day argument, correlation discounting, power implications for collection duration.
+7. `03 AI/Prompt Library` — add: "grade all probabilistic claims with proper scores; reject accuracy/hit-rate framing" as a standing analysis instruction.

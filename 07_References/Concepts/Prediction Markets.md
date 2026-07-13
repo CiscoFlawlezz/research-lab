@@ -114,7 +114,7 @@ over outstanding quantities $\mathbf{q}$, with instantaneous prices given by the
 
 $$p_i = \frac{e^{q_i/b}}{\sum_j e^{q_j/b}}$$
 
-Properties: prices are always defined (no missing liquidity), sum to one across an exhaustive partition by construction, and the sponsor's worst-case subsidy is bounded by $b \ln n$ for $n$ outcomes. The liquidity parameter $b$ trades off price responsiveness against subsidy cost. The deep property: **LMSR implements a shared sequential log score** — each trader's profit equals the improvement in the market's log score produced by their trade, making the market literally a scoring-rule elicitation device (see [[Proper Scoring Rules and Calibration - Technical Reference]]). Empirically, Atanasov, Witkowski, Mellers & Tetlock (2024) find LMSR markets produced more accurate prices than CDA markets in tournament settings ⚑.
+Properties: prices are always defined (no missing liquidity), sum to one across an exhaustive partition by construction, and the sponsor's worst-case subsidy is bounded by $b \ln n$ for $n$ outcomes. The liquidity parameter $b$ trades off price responsiveness against subsidy cost. The deep property: **LMSR implements a shared sequential log score** — each trader's profit equals the improvement in the market's log score produced by their trade, making the market literally a scoring-rule elicitation device (see [[Proper Scoring Rules and Calibration - Technical Reference (V2)]]). Empirically, Atanasov, Witkowski, Mellers & Tetlock (2024) find LMSR markets produced more accurate prices than CDA markets in tournament settings ⚑.
 
 **Design principles with project consequences:**
 
@@ -170,7 +170,7 @@ A forecaster (or market) is **calibrated** if, among all events assigned probabi
 
 $$\mathbb{E}[Y \mid P_m = p] = p \quad \text{for all } p$$
 
-Calibration is assessed with reliability diagrams (binned $\bar{o}_k$ vs $\bar{p}_k$) and summarized (imperfectly) by expected calibration error; both carry serious finite-sample and binning caveats treated in [[Proper Scoring Rules and Calibration - Technical Reference]] — bin frequencies carry binomial noise $\sqrt{p(1-p)/n_k}$, and reliability-curve _shape_ is not signal until hundreds of forecasts accrue.
+Calibration is assessed with reliability diagrams (binned $\bar{o}_k$ vs $\bar{p}_k$) and summarized (imperfectly) by expected calibration error; both carry serious finite-sample and binning caveats treated in [[Proper Scoring Rules and Calibration - Technical Reference (V2)]] — bin frequencies carry binomial noise $\sqrt{p(1-p)/n_k}$, and reliability-curve _shape_ is not signal until hundreds of forecasts accrue.
 
 **What the literature finds for prediction markets:**
 
@@ -185,7 +185,7 @@ Calibration is assessed with reliability diagrams (binned $\bar{o}_k$ vs $\bar{p
 
 ## Proper Scoring Rules
 
-Full treatment lives in [[Proper Scoring Rules and Calibration - Technical Reference]]; this section records only what a prediction-market reference needs.
+Full treatment lives in [[Proper Scoring Rules and Calibration - Technical Reference (V2)]]; this section records only what a prediction-market reference needs.
 
 A scoring rule $S(p, y)$ is **strictly proper** if honest reporting of one's true probability uniquely maximizes expected score (Gneiting & Raftery, 2007). The two workhorses:
 
@@ -312,7 +312,7 @@ Kalshi effect sizes on record (⚑ from abstract/summaries — verify against a 
 
 ## Statistical Evaluation
 
-How market (or model) forecast quality is established — condensed here, canonical treatment in [[Proper Scoring Rules and Calibration - Technical Reference]] and [[Effective Sample Size]]:
+How market (or model) forecast quality is established — condensed here, canonical treatment in [[Proper Scoring Rules and Calibration - Technical Reference (V2)]] and [[Effective Sample Size]]:
 
 1. **Proper scores only** (Brier, log; RPS across a bracket ladder), with **Murphy decomposition** (reliability / resolution / uncertainty) to separate calibration from information content.
 2. **Skill, not raw scores.** Compare on common events via paired score differentials against the reference ladder — climatology → NWS-derived model → market — with references fixed out-of-sample. Positive, dependence-robust skill vs. the _market_ rung is the definition of edge.

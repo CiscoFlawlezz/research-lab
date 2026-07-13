@@ -1,7 +1,7 @@
 # Effective Sample Size
 
 **Vault location:** `01 Research`
-**Cross-links:** [[Proper Scoring Rules and Calibration - Technical Reference]] · [[Edge Detection]] · [[Experiment Log]]
+**Cross-links:** [[Proper Scoring Rules and Calibration - Technical Reference (V2)]] · [[Edge Detection]] · [[Experiment Log]]
 **Status:** Standing rule — every statistical analysis in this project must comply
 **Created:** 2026-07-04
 

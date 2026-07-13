@@ -1,7 +1,7 @@
 # Brier Decomposition - Worked Example
 
 **Vault location:** `01 Research`
-**Cross-links:** [[Proper Scoring Rules and Calibration - Technical Reference]] · [[Effective Sample Size]] · [[Experiment Log]]
+**Cross-links:** [[Proper Scoring Rules and Calibration - Technical Reference (V2)]] · [[Effective Sample Size]] · [[Experiment Log]]
 **Status:** ⚠️ STUB — intentionally incomplete. Fill with real pipeline data after Milestone 1b's 14-day collection completes.
 **Created:** 2026-07-04
 

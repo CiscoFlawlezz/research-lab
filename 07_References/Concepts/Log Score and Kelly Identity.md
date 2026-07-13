@@ -1,7 +1,7 @@
 # Log Score and Kelly Identity
 
 **Vault location:** `01 Research`
-**Cross-links:** [[Kelly Criterion]] · [[Expected Value]] · [[Edge Detection]] · [[Proper Scoring Rules and Calibration - Technical Reference]]
+**Cross-links:** [[Kelly Criterion]] · [[Expected Value]] · [[Edge Detection]] · [[Proper Scoring Rules and Calibration - Technical Reference (V2)]]
 **Status:** Foundational result — cite from any edge or sizing discussion
 **Created:** 2026-07-04
 

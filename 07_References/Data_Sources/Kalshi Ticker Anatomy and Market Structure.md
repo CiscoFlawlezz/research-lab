@@ -1,7 +1,7 @@
 # Kalshi Ticker Anatomy and Market Structure
 
 **Vault location:** `04 Data Sources`
-**Cross-links:** [[Kalshi API]] · [[Weather Model]] · [[Proper Scoring Rules and Calibration - Technical Reference]]
+**Cross-links:** [[Kalshi API]] · [[Weather Model]] · [[Proper Scoring Rules and Calibration - Technical Reference (V2)]]
 **Status:** Empirical findings from Milestone 1a live run (2026-07-03/04)
 **Created:** 2026-07-04
 

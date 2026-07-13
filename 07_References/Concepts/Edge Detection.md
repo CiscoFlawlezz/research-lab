@@ -11,7 +11,7 @@ title: '"Prediction Market Edge Detection — Technical Reference"'
 
 # Edge Detection
 
-**Cross-links:** [[Prediction Markets]] · [[Kalshi Ticker Anatomy and Market Structure]] · [[Proper Scoring Rules and Calibration - Technical Reference]] · [[Log Score and Kelly Identity]] · [[Expected Value]] · [[Kelly Criterion]] · [[Effective Sample Size]] · [[Brier Decomposition - Worked Example]] · [[Bayesian Statistics]] · [[Machine Learning]] · [[Glossary]] · [[Open Questions]] · [[Research Lab Master Specification]] · [[Research Methodology v2 Canonical]]
+**Cross-links:** [[Prediction Markets]] · [[Kalshi Ticker Anatomy and Market Structure]] · [[Proper Scoring Rules and Calibration - Technical Reference (V2)]] · [[Log Score and Kelly Identity]] · [[Expected Value]] · [[Kelly Criterion]] · [[Effective Sample Size]] · [[Brier Decomposition - Worked Example]] · [[Bayesian Statistics]] · [[Machine Learning]] · [[Glossary]] · [[Open Questions]] · [[Research Lab Master Specification]] · [[Research Methodology v2 Canonical]]
 
 > **Provenance (Invariant 3).** This is an AI-drafted synthesis. Every empirical claim is **E4 (testimony)** until the human opens the cited primary source and confirms it. Citations are given so they _can_ be checked, not because they have been. Effect sizes are reported as the sources state them, with per-claim verification flags where a number carries decision weight; none has been reproduced against primary data in this project. Nothing here becomes load-bearing before it is graded up. v4 integrates the adversarial review of 2026-07-07; the review transcript, not this document, is the record of what changed.
 

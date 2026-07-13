@@ -105,6 +105,65 @@ transcription was a convenience copy only.
 question. Remaining pre-collection blockers: F1 (collector must read CLI product) and
 F2 (series-ticker rules verification).
 
+2026-07-13 — M2.T4 prerequisite #1 complete: core/config.py accessors + tests.
+  Built core/config.py exposing cities(), series(), stations(), station(),
+  nws_user_agent(), nws_base_url(), kalshi_base_url(), cli_cadence(); cutoffs()
+  raises ConfigError ("not yet configured" — enters at model rung, M5). Missing
+  keys raise ConfigError (subclass of KeyError), never silently default — the
+  load-bearing property. Tests: 11 passed. D4 grep audit
+  (grep -rn "KXHIGH\|KPHX\|KNYC\|KMDW\|KMIA\|KAUS" --include=*.py) returns no
+  ticker literals inside core/config.py. Committed to pipeline repo, visible in
+  git log. Status: E4, code ungraded pending Architect ratification (Invariant 3).
+  Governing: RL-ENG-001 (D4 config unification).
+
+2026-07-13 — M1.T6 complete: snapshot store + provenance index.
+  Built storage/snapshots.py — content-addressed store (SHA-256), blob bytes and
+  index row written in a single SQLite transaction so neither an orphan blob nor a
+  dangling index row is possible. retrieve() re-hashes on read and raises on
+  integrity mismatch. Idempotent re-store: identical content stored once, each
+  fetch event recorded as a new provenance row. Tests: 10 passed, including the
+  kill-between-write test (simulated mid-transaction crash rolls back to neither
+  blob nor index row) and orphan/dangling audit counts = 0. Full suite 21 passed.
+  No .db file committed. Committed, visible in git log. Status: E4, ungraded
+  pending ratification. Governing: M1.T6 hashing ADR (Invariant 4, snapshot what
+  you cite). NOTE: hash algorithm (SHA-256) and index schema are [IRR] — this
+  fixes them; a change later requires a dated ADR addendum, not a silent edit.
+
+2026-07-13 — M2.T1 complete: climate_day() + DST test suite.
+  Built core/climate_day.py — single authority for settlement-day assignment
+  (D1). Uses FIXED per-city standard-time offsets year-round (phoenix -7, nyc -5,
+  chicago -6, miami -5, austin -6); DST is never applied, so the climate-day
+  boundary does not shift twice a year. Naive datetimes assumed UTC (explicit);
+  non-UTC-aware inputs converted; unknown city raises ClimateDayError. Tests: 12
+  passed, spanning both 2026 DST transitions (spring-forward Mar 8, fall-back
+  Nov 1) for the affected cities, a Phoenix summer/winter-identical control case,
+  and a BITE test asserting a naive UTC-date implementation is wrong on the same
+  boundary instants. Full suite 33 passed. Committed, visible in git log.
+  Status: E4, ungraded pending ratification. Governing: D1 (one settlement-day
+  function — lint-grade rule: no other module computes settlement days).
+
+2026-07-13 — All three M2.T4 (CLI collector) prerequisites now closed:
+  core/config.py ✓, snapshot store ✓, climate_day() ✓. Next critical-path task:
+  M2.T4 — CLI Daily Climate Report ingestion [ACC][IRR], the task that starts the
+  irreversible accrual clock on settlement ground truth.
+
+  Two open items surfaced this session, recorded here rather than left implicit:
+  (1) DESIGN DECISION PENDING RATIFICATION — climate_day() uses a hardcoded
+      standard-offset table, not a DST-aware timezone library, deliberately (the
+      boundary must not move). This is the executable form of the LST finding and
+      warrants a one-line Decision Log entry at ratification.
+  (2) VERIFICATION GAP for M2.T4 — the collector will need the CLI product text
+      format (F1) and the four non-Phoenix rulebook confirmations (F2), both still
+      open in the ★-priority queue. Prerequisites did not need these; the collector
+      does. Decide before M2.T4 whether to ship Phoenix-only first (fully verified)
+      and add the other four as their rulebook confirmations land.
+
+  CORRECTION (KT Rank 5, scoped to this session's observed terminal output): at
+  the start of this work, core/ and storage/ were found effectively empty of the
+  real modules — the earlier "built or in progress" status for these three
+  prerequisites did not match disk. This session built them from clean rather than
+  confirming pre-existing work. Verified against `find . -name "*.py"` output,
+  2026-07-13.
 
 
 
