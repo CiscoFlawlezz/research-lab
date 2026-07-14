@@ -1,0 +1,48 @@
+.gitignore
+00_MOC/Home.md
+00_MOC/MOC_Probability_and_Scoring.md
+01_Governance/ADR-022 — Vault Folder Scheme (Hybrid).md
+01_Governance/ADR_Collection_v2.0.md
+01_Governance/Bootstrap_Log.md
+01_Governance/Current Sprint.md
+01_Governance/Decision Log.md
+01_Governance/Future_Directions.md.md
+01_Governance/Learning Roadmap.md
+01_Governance/Market_Normalization_Spec_v2.md
+01_Governance/Master Roadmap.md
+01_Governance/Pre_Implementation_Artifact_Roadmap_v1.md
+01_Governance/Research_Lab_Master_Specification_v1.md
+01_Governance/Research_Methodology_v2_Canonical.md
+02_Glossary/Glossary.md
+03_Open_Questions/Open Questions.md
+04_Experiments/Experiment Log.md
+06_Prediction_Ledger/Prediction_Ledger.md
+07_References/AI_and_Tooling/AI Ideas.md
+07_References/AI_and_Tooling/Claude.md
+07_References/AI_and_Tooling/Prompt Library.md
+07_References/Bibliography/Scoring Rules Bibliography - Ranked.md
+07_References/Concepts/Bayesian Statistics.md
+07_References/Concepts/Brier Decomposition - Worked Example.md
+07_References/Concepts/Decision Theory.md
+07_References/Concepts/Edge Detection.md
+07_References/Concepts/Effective Sample Size.md
+07_References/Concepts/Expected Value.md
+07_References/Concepts/Forecast Verification.md
+07_References/Concepts/Information Theory for Forecasting.md
+07_References/Concepts/Kelly Criterion.md
+07_References/Concepts/Log Score and Kelly Identity.md
+07_References/Concepts/Machine Learning.md
+07_References/Concepts/Market Microstructure.md
+07_References/Concepts/Prediction Markets.md
+07_References/Concepts/Probability.md
+07_References/Concepts/Proper Scoring Rules and Calibration - Technical Reference (V2).md
+07_References/Concepts/Statistical Learning Theory.md
+07_References/Concepts/Weather Forecast Models.md
+07_References/Data_Sources/FRED.md
+07_References/Data_Sources/Google Trends.md
+07_References/Data_Sources/Kalshi API.md
+07_References/Data_Sources/Kalshi Ticker Anatomy and Market Structure.md
+07_References/Data_Sources/NOAA.md
+07_References/Data_Sources/National Weather Service.md
+09_Journal/Vault Additions 2026-07-04.md
+Templates/Templates/Pre-Registered Experiment Template.md
