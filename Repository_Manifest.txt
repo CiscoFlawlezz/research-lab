@@ -60,3 +60,4 @@
 09_Journal/Vault Additions 2026-07-04.md
 Repository_Manifest.txt
 Templates/Templates/Pre-Registered Experiment Template.md
+generate_manifest.sh
