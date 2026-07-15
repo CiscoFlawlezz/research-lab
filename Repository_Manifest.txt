@@ -1,4 +1,17 @@
 .gitignore
+.trash/02 Markets/Crypto Markets.md
+.trash/02 Markets/Culture Markets.md
+.trash/02 Markets/Economic Markets.md
+.trash/02 Markets/Politics Markets.md
+.trash/02 Markets/Weather Markets.md
+.trash/05 Models/Economic Model.md
+.trash/05 Models/Risk Management.md
+.trash/05 Models/Weather Model.md
+.trash/09 Resources/Books.md
+.trash/09 Resources/Courses.md
+.trash/09 Resources/Research Papers.md
+.trash/09 Resources/Useful Websites.md
+.trash/Proper Scoring Rules and Calibration.md
 00_MOC/Home.md
 00_MOC/MOC_Probability_and_Scoring.md
 01_Governance/ADR-022 — Vault Folder Scheme (Hybrid).md
@@ -30,7 +43,7 @@
 07_References/Concepts/Forecast Verification.md
 07_References/Concepts/Information Theory for Forecasting.md
 07_References/Concepts/Kelly Criterion.md
-07_References/Concepts/Log Score and Kelly Identity.md
+07_References/Concepts/Log Score and Kelly Identity — Technical Reference (V2).md
 07_References/Concepts/Machine Learning.md
 07_References/Concepts/Market Microstructure.md
 07_References/Concepts/Prediction Markets.md
@@ -45,4 +58,5 @@
 07_References/Data_Sources/NOAA.md
 07_References/Data_Sources/National Weather Service.md
 09_Journal/Vault Additions 2026-07-04.md
+Repository_Manifest.txt
 Templates/Templates/Pre-Registered Experiment Template.md
