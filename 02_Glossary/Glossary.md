@@ -32,7 +32,7 @@
 
 **Kelly criterion** — Bet sizing maximizing expected log wealth. Gated until an edge is validated. → [[Kelly Criterion]]
 
-**Kelly–log-score identity** — Expected log growth of a Kelly bettor vs market price = expected log-score difference vs the market: $D_{KL}(q\|r)-D_{KL}(q\|p)$. The bridge between scoring and money. → [[Log Score and Kelly Identity]]
+**Kelly–log-score identity** — Expected log growth of a Kelly bettor vs market price = expected log-score difference vs the market: $D_{KL}(q\|r)-D_{KL}(q\|p)$. The bridge between scoring and money. → [[Log Score and Kelly Identity — Technical Reference (V2)]]
 
 **KL divergence** — $D_{KL}(q\|p)$, information-theoretic distance from truth q to forecast p. Expected log-score shortfall of p relative to truth.
 

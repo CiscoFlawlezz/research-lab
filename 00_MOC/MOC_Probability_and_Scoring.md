@@ -3,7 +3,7 @@
    - [[Probability]]
    - [[Proper Scoring Rules and Calibration - Technical Reference (V2)]]
    - [[Brier Decomposition]]
-   - [[Log Score and Kelly Identity]]
+   - [[Log Score and Kelly Identity — Technical Reference (V2)]]
    - [[Effective Sample Size]]
    - [[Scoring Rules Bibliography]]
    - [[Bayesian Statistics]] (seed)

@@ -7,15 +7,15 @@ created: 2026-07-07
 
 ---
 
-## title: "Kelly Criterion" aliases: ["Kelly Criterion", "Kelly", "Growth-Optimal Betting", "Optimal Capital Allocation — Technical Reference", "Log-Optimal Portfolio"] vault_location: "07_References/Concepts" level: "Quantitative researcher reference (assumes probability theory, basic convex optimization, familiarity with [[Probability]] and [[Log Score and Kelly Identity]])" status: "AI-drafted V1 — E4 testimony, ungraded pending Architect verification per Invariant 3; NOT canonical until ratified" supersedes: "Kelly_Criterion.md empty placeholder stub (0 bytes)" created: 2026-07-10 review: 2027-01-10 tags: [kelly-criterion, capital-allocation, position-sizing, information-theory, log-utility, bayesian, robust-optimization, prediction-markets, kalshi, risk-management, numerical-stability]
+## title: "Kelly Criterion" aliases: ["Kelly Criterion", "Kelly", "Growth-Optimal Betting", "Optimal Capital Allocation — Technical Reference", "Log-Optimal Portfolio"] vault_location: "07_References/Concepts" level: "Quantitative researcher reference (assumes probability theory, basic convex optimization, familiarity with [[Probability]] and [[Log Score and Kelly Identity — Technical Reference (V2)]])" status: "AI-drafted V1 — E4 testimony, ungraded pending Architect verification per Invariant 3; NOT canonical until ratified" supersedes: "Kelly_Criterion.md empty placeholder stub (0 bytes)" created: 2026-07-10 review: 2027-01-10 tags: [kelly-criterion, capital-allocation, position-sizing, information-theory, log-utility, bayesian, robust-optimization, prediction-markets, kalshi, risk-management, numerical-stability]
 
 # Kelly Criterion — Research Synthesis
 
-**Vault location:** `07_References/Concepts` **Level:** Quantitative researcher reference. The sizing layer of the project's stack: it consumes calibrated probabilities and produces capital allocations. **Cross-links:** [[Log Score and Kelly Identity]] · [[Probability]] · [[Bayesian Statistics]] · [[Expected Value]] · [[Proper Scoring Rules and Calibration - Technical Reference (V2)]] · [[Forecast Verification]] · [[Edge Detection]] · [[Prediction Markets]] · [[Kalshi Ticker Anatomy and Market Structure]] · [[Effective Sample Size]] · [[Machine Learning]] · [[Brier Decomposition - Worked Example]] · [[Glossary]] · [[Open Questions]] **Status:** Version 1 — draft, ungraded pending Architect verification (Invariant 3) **Created:** 2026-07-10
+**Vault location:** `07_References/Concepts` **Level:** Quantitative researcher reference. The sizing layer of the project's stack: it consumes calibrated probabilities and produces capital allocations. **Cross-links:** [[Log Score and Kelly Identity — Technical Reference (V2)]] · [[Probability]] · [[Bayesian Statistics]] · [[Expected Value]] · [[Proper Scoring Rules and Calibration - Technical Reference (V2)]] · [[Forecast Verification]] · [[Edge Detection]] · [[Prediction Markets]] · [[Kalshi Ticker Anatomy and Market Structure]] · [[Effective Sample Size]] · [[Machine Learning]] · [[Brier Decomposition - Worked Example]] · [[Glossary]] · [[Open Questions]] **Status:** Version 1 — draft, ungraded pending Architect verification (Invariant 3) **Created:** 2026-07-10
 
 > [!warning] Epistemic status (Invariant 3) This document is AI-drafted testimony, not evidence. It was produced from model knowledge without live retrieval, following the convention of [[Forecast Verification]] V2 and [[Probability]]. Every bibliographic citation **must be independently verified (title, year, venue, page-level claims) before any statement here is cited as load-bearing in a registration or ADR**. Lower-confidence citations carry ⚑ per house convention; ★ marks the priority verification tier. The mathematics in §2–§10 is textbook-stable and the lowest-risk layer; bibliographic metadata, empirical effect sizes (§16), and the Kalshi fee formula (§11.4 ⚑) are the most fragile. Where this note and any ratified A-series document disagree, the A-series document governs.
 
-> [!info] Supersession note This document replaces the prior `Kelly_Criterion.md`, which was an **empty placeholder stub** — precisely the structural bug the methodology prohibits. Existing `[[Kelly Criterion]]` backlinks throughout the vault (from [[Log Score and Kelly Identity]], [[Edge Detection]], [[Forecast Verification]], [[Probability]], and others) now resolve here. Per the single-source rule, the stub is superseded in full.
+> [!info] Supersession note This document replaces the prior `Kelly_Criterion.md`, which was an **empty placeholder stub** — precisely the structural bug the methodology prohibits. Existing `[[Kelly Criterion]]` backlinks throughout the vault (from [[Log Score and Kelly Identity — Technical Reference (V2)]], [[Edge Detection]], [[Forecast Verification]], [[Probability]], and others) now resolve here. Per the single-source rule, the stub is superseded in full.
 
 > [!note] Scope discipline Reference document, not an ADR. Nothing here modifies the methodology, the city-day unit, the reference ladder, the V-gate roadmap, or any settled decision. **Live Kelly sizing remains gated behind V3; the only Kelly machinery authorized before then is the V2 paper ledger.** The engineering directives in §23 are _proposals_ pending Architect ratification, flagged [NEW] where they are not already standing policy elsewhere.
 
@@ -23,7 +23,7 @@ created: 2026-07-07
 
 ## 0. Orientation: what this document is for
 
-The Research Lab's pipeline separates three questions that casual treatments of trading conflate: _Is the market wrong?_ ([[Edge Detection]]), _By how much, in growth units?_ ([[Log Score and Kelly Identity]]), and _Given a validated answer to the first two, how much capital goes on each contract?_ This document answers only the third. It is deliberately downstream: Kelly sizing consumes a calibrated probability $P_f$, a market price, and a cost model, and emits a stake. If the probability is not calibrated — if the forecaster has not survived the verification machinery of [[Forecast Verification]] and the population-level inference of [[Edge Detection]] — then everything below is a precise answer to a question that has not yet been earned. The single most important sentence in this reference is therefore its first engineering directive: **Kelly is the last stage of the pipeline, never the first.**
+The Research Lab's pipeline separates three questions that casual treatments of trading conflate: _Is the market wrong?_ ([[Edge Detection]]), _By how much, in growth units?_ ([[Log Score and Kelly Identity — Technical Reference (V2)]]), and _Given a validated answer to the first two, how much capital goes on each contract?_ This document answers only the third. It is deliberately downstream: Kelly sizing consumes a calibrated probability $P_f$, a market price, and a cost model, and emits a stake. If the probability is not calibrated — if the forecaster has not survived the verification machinery of [[Forecast Verification]] and the population-level inference of [[Edge Detection]] — then everything below is a precise answer to a question that has not yet been earned. The single most important sentence in this reference is therefore its first engineering directive: **Kelly is the last stage of the pipeline, never the first.**
 
 ---
 
@@ -35,7 +35,7 @@ The Kelly criterion did not come from gambling or from finance. It came from a p
 
 His construction: a gambler receives advance information about the outcomes of baseball games (in the paper's framing, over a noisy private wire — the mid-century "wire service" that transmitted race and game results). The gambler cannot re-transmit or decode anything; all he can do is bet. Kelly showed that if the gambler bets to maximize the expected logarithm of wealth, the exponential growth rate of his capital equals the mutual information rate of the channel carrying his tips. Channel capacity, a purely communication-theoretic quantity, is _literally_ the maximum rate at which side information can be converted into compound wealth growth. Anecdotally, AT&T management was uneasy about a Bell System publication framed around bookmaking, and the published title is the sanitized one ⚑ (the gambling framing survives in the body; the anecdote is via Poundstone 2005 and should not be treated as verified corporate history).
 
-This origin explains a fact that surprises newcomers: the Kelly criterion is not an axiom about human preferences and not a piece of financial folklore. It is a theorem in information theory, and its natural units — bits, entropy, KL divergence — are the same units in which this project scores forecasts. The vault's [[Log Score and Kelly Identity]] is the local expression of Kelly's original insight.
+This origin explains a fact that surprises newcomers: the Kelly criterion is not an axiom about human preferences and not a piece of financial folklore. It is a theorem in information theory, and its natural units — bits, entropy, KL divergence — are the same units in which this project scores forecasts. The vault's [[Log Score and Kelly Identity — Technical Reference (V2)]] is the local expression of Kelly's original insight.
 
 ### 1.2 Independent economics lineage
 
@@ -114,7 +114,7 @@ the mutual information between the outcome and the signal (Kelly 1956 ★; Cover
 
 ### 3.3 The KL identity (local canonical form)
 
-Against a market quoting price $r$ for a binary event with true probability $q$, a log-utility bettor holding belief $p$ achieves (see the derivation in [[Log Score and Kelly Identity]], which this document treats as the canonical vault statement)
+Against a market quoting price $r$ for a binary event with true probability $q$, a log-utility bettor holding belief $p$ achieves (see the derivation in [[Log Score and Kelly Identity — Technical Reference (V2)]], which this document treats as the canonical vault statement)
 
 $$\mathbb{E}_q[\ln \text{growth}] ;=; D_{\mathrm{KL}}(q,|,r) ;-; D_{\mathrm{KL}}(q,|,p).$$
 
@@ -158,7 +158,7 @@ A useful identity: at the optimum, expected log growth equals the KL gap of §3.
 
 ### 4.4 Both-sides formulation
 
-The [[Log Score and Kelly Identity]] derivation uses the "bet your beliefs on both sides" construction — fraction $p$ of wealth on YES and $1-p$ on NO — which is the horse-race proportional bet of §3.1 specialized to $m=2$. With a two-sided frictionless market the two formulations produce identical wealth paths; with real spreads they differ, and the executable-price question is Open Question 2 in [[Open Questions]], owned by A4. This document defers to A4's eventual registered rule for which price enters the formulas.
+The [[Log Score and Kelly Identity — Technical Reference (V2)]] derivation uses the "bet your beliefs on both sides" construction — fraction $p$ of wealth on YES and $1-p$ on NO — which is the horse-race proportional bet of §3.1 specialized to $m=2$. With a two-sided frictionless market the two formulations produce identical wealth paths; with real spreads they differ, and the executable-price question is Open Question 2 in [[Open Questions]], owned by A4. This document defers to A4's eventual registered rule for which price enters the formulas.
 
 ### 4.5 Multiple mutually exclusive outcomes (bracket markets)
 
@@ -360,7 +360,7 @@ Each friction reduces the optimal fraction; their composition is multiplicative 
 
 ### 12.1 Commissions and fees
 
-A deterministic cost $\kappa$ per unit staked transforms the binary problem into $g(f) = p\ln(1 + bf - \kappa f) + q\ln(1 - f - \kappa f)$ (fee paid on entry regardless of outcome; Kalshi's settlement-fee variants adjust which branch carries $\kappa$ ⚑ — encode from the verified schedule). First-order effect: the edge threshold. There is a strictly positive minimum edge below which $f^* = 0$; costs convert "any positive edge is tradeable" into "edge must exceed a threshold" — consequence 4 of [[Log Score and Kelly Identity]], now with the sizing-layer mechanism explicit.
+A deterministic cost $\kappa$ per unit staked transforms the binary problem into $g(f) = p\ln(1 + bf - \kappa f) + q\ln(1 - f - \kappa f)$ (fee paid on entry regardless of outcome; Kalshi's settlement-fee variants adjust which branch carries $\kappa$ ⚑ — encode from the verified schedule). First-order effect: the edge threshold. There is a strictly positive minimum edge below which $f^* = 0$; costs convert "any positive edge is tradeable" into "edge must exceed a threshold" — consequence 4 of [[Log Score and Kelly Identity — Technical Reference (V2)]], now with the sizing-layer mechanism explicit.
 
 ### 12.2 Spread
 
@@ -532,7 +532,7 @@ Standing rules proposed alongside: the sizing rule (fraction, thresholds, caps, 
 
 ## 21. Connections to Other Research Lab Documents
 
-- **[[Log Score and Kelly Identity]]** — the canonical vault statement of the growth ⟷ log-score identity; this document extends it to sizing, portfolios, and costs and defers to it on the identity itself.
+- **[[Log Score and Kelly Identity — Technical Reference (V2)]]** — the canonical vault statement of the growth ⟷ log-score identity; this document extends it to sizing, portfolios, and costs and defers to it on the identity itself.
 - **[[Probability]]** — supplies the measure-theoretic and distributional foundations; §3's entropy/KL machinery is defined there.
 - **[[Bayesian Statistics]]** — produces the posterior (predictive) pmfs the sizing layer consumes (§9.4); the posterior-mean result (§9.2) and the joint cross-city predictive (§10.3) are its direct interfaces.
 - **[[Expected Value]]** — owns the cost-threshold quantification (Kalshi fees, spreads) that §12 consumes; EV answers _whether_, Kelly answers _how much_.
@@ -633,4 +633,4 @@ Ranked within tiers. ★ = priority verification tier (feeds A-series or directi
 
 **Verification queue.** ★ tier first (n = 13); then the two decision-fragile ⚑ clusters — the Kalshi fee formula (§11.4) and the Haghani–Dewey percentages (§16.5) if ever cited; then remaining ⚑ entries lazily on first use. The half-degree rounding flag (§11.3) is owned by the existing vault-wide ⚑, not duplicated here.
 
-**Internal-check ledger (no citation needed — verifiable in-house).** The §9.2 linearity result (three lines of algebra); the §5.2 parabola facts ($g(2f^_) = 0$); the §7.1 growth identity $g(cf^_) = c(2-c)g^*$; the §4.3 boxed formulas; the §3.3 KL identity (already derived in [[Log Score and Kelly Identity]]). These can be graded on mathematical verification alone, independent of the bibliography.
+**Internal-check ledger (no citation needed — verifiable in-house).** The §9.2 linearity result (three lines of algebra); the §5.2 parabola facts ($g(2f^_) = 0$); the §7.1 growth identity $g(cf^_) = c(2-c)g^*$; the §4.3 boxed formulas; the §3.3 KL identity (already derived in [[Log Score and Kelly Identity — Technical Reference (V2)]]). These can be graded on mathematical verification alone, independent of the bibliography.

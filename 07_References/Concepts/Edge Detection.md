@@ -11,7 +11,7 @@ title: '"Prediction Market Edge Detection — Technical Reference"'
 
 # Edge Detection
 
-**Cross-links:** [[Prediction Markets]] · [[Kalshi Ticker Anatomy and Market Structure]] · [[Proper Scoring Rules and Calibration - Technical Reference (V2)]] · [[Log Score and Kelly Identity]] · [[Expected Value]] · [[Kelly Criterion]] · [[Effective Sample Size]] · [[Brier Decomposition - Worked Example]] · [[Bayesian Statistics]] · [[Machine Learning]] · [[Glossary]] · [[Open Questions]] · [[Research Lab Master Specification]] · [[Research Methodology v2 Canonical]]
+**Cross-links:** [[Prediction Markets]] · [[Kalshi Ticker Anatomy and Market Structure]] · [[Proper Scoring Rules and Calibration - Technical Reference (V2)]] · [[Log Score and Kelly Identity — Technical Reference (V2)]] · [[Expected Value]] · [[Kelly Criterion]] · [[Effective Sample Size]] · [[Brier Decomposition - Worked Example]] · [[Bayesian Statistics]] · [[Machine Learning]] · [[Glossary]] · [[Open Questions]] · [[Research Lab Master Specification]] · [[Research Methodology v2 Canonical]]
 
 > **Provenance (Invariant 3).** This is an AI-drafted synthesis. Every empirical claim is **E4 (testimony)** until the human opens the cited primary source and confirms it. Citations are given so they _can_ be checked, not because they have been. Effect sizes are reported as the sources state them, with per-claim verification flags where a number carries decision weight; none has been reproduced against primary data in this project. Nothing here becomes load-bearing before it is graded up. v4 integrates the adversarial review of 2026-07-07; the review transcript, not this document, is the record of what changed.
 
@@ -36,7 +36,7 @@ $$\text{EV}_{\text{YES}} = P_f(1-a) - (1-P_f),a = P_f - a,$$
 
 which equals $\Delta$ only in the frictionless idealization $a = P_m$ (zero spread, zero fee). Nothing trades at the midpoint; the realistic buy-side EV is $P_f - a - \text{fee}$, and the sell side is symmetric at the bid. Under the idealization, expected value per contract equals the disagreement — _if $P_f$ is correct_. That conditional is the entire problem: $P_f$ is an estimate, $P_m$ is the aggregate belief of everyone else — including participants who may know more — and a single $\Delta$ is a difference of two noisy numbers. **Edge detection is the discipline of deciding when a population of disagreements constitutes real skill rather than model error, market noise, or the detector's own multiple testing.**
 
-The connection to money is exact, not metaphorical. By the Kelly–log-score identity ([[Log Score and Kelly Identity]]), the expected log-growth of a Kelly bettor facing prices $p$ with beliefs $q$ against truth $r$ is
+The connection to money is exact, not metaphorical. By the Kelly–log-score identity ([[Log Score and Kelly Identity — Technical Reference (V2)]]), the expected log-growth of a Kelly bettor facing prices $p$ with beliefs $q$ against truth $r$ is
 
 $$\mathbb{E}[\text{log-growth}] = D_{KL}(r ,|, p) - D_{KL}(r ,|, q),$$
 

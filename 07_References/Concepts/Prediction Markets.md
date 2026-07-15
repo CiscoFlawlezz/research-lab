@@ -195,7 +195,7 @@ Three market connections:
 
 1. **Prices are forecasts.** A defined market-price functional is scoreable exactly like a model; "market calibration" is a measurable property, not an assumption.
 2. **LMSR is a scoring rule** (see [[#Market Design]]) — trading profit against an LMSR equals log-score improvement.
-3. **The Kelly–log-score identity** ([[Log Score and Kelly Identity]]): expected log-growth of Kelly betting against market odds equals the forecaster's log-score advantage over the market. **Score-edge vs. the market rung is the precise statistical meaning of "edge"** — necessary for profit; sufficient only after fees and executable spreads.
+3. **The Kelly–log-score identity** ([[Log Score and Kelly Identity — Technical Reference (V2)]]): expected log-growth of Kelly betting against market odds equals the forecaster's log-score advantage over the market. **Score-edge vs. the market rung is the precise statistical meaning of "edge"** — necessary for profit; sufficient only after fees and executable spreads.
 
 Never validate a probability with a single outcome; probabilities validate only at population level ([[Research Methodology v2]]).
 
