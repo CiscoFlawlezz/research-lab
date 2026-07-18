@@ -362,3 +362,14 @@ load-bearing, not courtesy.
 
 **Evidence grade:** E4 -> **ratified by Architect 2026-07-17** (backup verified
 live and restored). The R5 audit document remains E4 pending item-by-item review.
+
+2026-07-17 — F7 RESOLVED: multi-city collection confirmed live from disk.
+All five stations present in raw_nws_cli (KAUS, KMDW, KMIA, KNYC, KPHX).
+Rollout landed 2026-07-16: rows per climate_day 07-13:1, 07-14:1, 07-15:2,
+07-16:11 (Phoenix-only -> all five). Accrual is ~5 city-days/day, not 1;
+no city-days were being forfeited. Commit 757df5b ("config-driven multi-city
+collection with failure isolation") shipped this and was recorded in neither
+the manifest nor this log — documentation lag, not a collection gap.
+
+NOTE: row count != city-day count. Amendments append as new rows (KAUS 3 and
+KPHX 6 rows on/through 07-16). n is counted in city-days per ADR-010.
