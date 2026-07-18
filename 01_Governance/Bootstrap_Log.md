@@ -285,3 +285,80 @@ Both nav blocks were unauthorized duplicates of the Home MOC index (audit findin
 **Standing lesson reinforced:** verify against actual terminal output, never against expectation. Both failures were caught because the guide specified expected output at every step and stop points on mismatch — the beginner-proof format is load-bearing, not a courtesy.
 
 **Evidence grade:** E4 → **ratified by Architect 2026-07-17**. The archive/removal decisions are Architect-approved; the audit that recommended them remains E4 pending item-by-item verification.
+
+## 2026-07-17 — R5 Phase 1 COMPLETE: pipeline.db backup live, restore verified
+
+**Commits:** c0326c1 (scripts, via auto-commit), 87e3998 (XML + rationale). Both pushed.
+**Governing:** R5 Disaster Recovery audit 2026-07-17 (E4); Master Spec R5; ADR-017.
+
+**Built:** scripts/backup_db.py + run_backup.bat + scheduler/WeatherPipeline_Backup.xml.
+Daily 01:00 (after the 00:30 final sweep). Target D:\Backups\weather-pipeline.
+VACUUM INTO -> integrity_check on the COPY -> live-vs-snapshot row counts ->
+gzip round-trip -> sha256 re-hashed after write. Any failure aborts and leaves
+the prior generation untouched. Exits non-zero.
+
+**Verified live:** manual run 00:49Z (0x0), scheduled run 01:12Z (0x0).
+90,112 -> 8,972 bytes. RESTORE PROVEN: gunzip -> integrity_check ok, 15 rows,
+15 snapshot blobs, climate_days 2026-07-13..2026-07-16. R5 is no longer
+unmitigated for the pipeline; it was total loss until tonight.
+
+### FINDING 1 — "weather-pipeline-backup" was never a data backup (8 days)
+
+Task created 2026-07-09T13:00:59, hourly x12/day, description
+"Auto-commit and push weather-pipeline to GitHub (R5 backup)". It runs
+auto_backup.bat = git add -A / commit / push. .gitignore excludes data/,
+snapshots/, *.db. The task therefore succeeded ~12x/day for 8 days while
+backing up ZERO irreplaceable data, and its name + description asserted R5
+was mitigated. R5 is ranked the Lab's largest unmitigated risk.
+
+Contradicts Bootstrap_Log 2026-07-09 ("no Task Scheduler auto-backup task
+exists for weather-pipeline") -- the task was created hours after that entry.
+Fifth instance of the record-vs-disk pattern (cf. 2026-07-14 modules,
+2026-07-15 Log Score V2, 2026-07-17 08_Archive, 2026-07-17 stale manifest).
+
+Disposition: task retained (valid auto-commit job); description corrected.
+Windows does not permit renaming a task in place; rename deferred as debt.
+Script rename auto_backup.bat -> auto_commit.bat pending (breaks the task's
+Action path; two-step change).
+
+Standing lesson: a task's NAME is not evidence of what it does. Read the
+Action. Invariant 3 applied to infrastructure.
+
+### FINDING 2 — WAL mode makes file-copy backups silently lossy
+
+pipeline.db runs journal_mode=WAL (schema.sql line 1). Committed rows live
+in pipeline.db-wal until checkpoint. Demonstrated on a schema replica with a
+writer mid-transaction: `copy pipeline.db` captured 1 row; VACUUM INTO
+captured 51. The naive copy opened cleanly, hashed cleanly, and would have
+passed integrity_check -- while missing 50 rows. Any future backup or restore
+tooling MUST use VACUUM INTO. [IRR]-adjacent: a lossy backup is undetectable
+until the restore that needs it.
+
+### FINDING 3 — auto-commit task races manual work
+
+At 21:14 the hourly auto-commit swept up backup_db.py and run_backup.bat
+mid-session and pushed them under "Auto-backup: Fri 07/17/2026 21:14:30.64",
+before the deliberate commit could be written. Rationale was recorded in
+87e3998 instead. An unattended `git add -A; commit; push` on a repo with an
+active operator will eventually push a broken script, a debug edit, or a
+secret. Its original job (off-machine code protection) is legitimate; hourly
+cadence on an actively-worked repo is not. Candidate ADR: disable, reduce to
+daily, or commit-without-push.
+
+### AI process failures this session (KT Rank 5)
+
+1. CRLF corruption: an AI-supplied edit script used Python write_text(),
+   translating LF->CRLF and rewriting every line of three canonical vault
+   documents. Caught by `git diff --stat` (1031 insertions vs 0 expected);
+   reset before push. Root cause: dry run executed in a Linux sandbox where
+   the distinction does not exist. Fix: newline="" on read AND write.
+2. Speculation ahead of evidence: after the reset, `git mv` failed and the AI
+   theorized about index divergence instead of running `ls`. Actual cause:
+   08_Archive was an untracked empty dir removed by the reset. One `ls`
+   answered it.
+
+Both caught by the guide's expected-output/stop-point format. The format is
+load-bearing, not courtesy.
+
+**Evidence grade:** E4 -> **ratified by Architect 2026-07-17** (backup verified
+live and restored). The R5 audit document remains E4 pending item-by-item review.
