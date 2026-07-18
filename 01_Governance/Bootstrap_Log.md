@@ -241,3 +241,47 @@ F2 (series-ticker rules verification).
 
 ## 2026-07-15 — Kalshi Market Structure reference rebuilt (v1 → v2), ratified **Type:** Canonization (document rewrite) **Artifact:** `07_References/Data_Sources/Kalshi Ticker Anatomy and Market Structure.md` **Supersedes:** v1 (2026-07-04, Milestone 1a field notes) **Evidence at draft:** E4 (AI-drafted) **Disposition:** Ratified by Architect 2026-07-15 → canon **Audit artifact:** `Kalshi_Doc_Audit_and_Changelog.md` (Parts 1–2; retained as evidence trail) ### What happened v1 was audited as a canonical reference (5/10) rather than as the field notes it actually was (~8/10). Nothing in it was flatly wrong; it covered ~10–15% of the required surface and carried five precision defects. Full rewrite performed against primary Kalshi documentation (docs.kalshi.com, help.kalshi.com, contract-terms PDFs, live market pages) plus the lab's own 1a observations. v2 is organized along the causal chain: exchange → contract → identification → book → price → information → data → research use → pitfalls → lab integration, closing with a Verification Ledger grading every load-bearing claim [P]/[O]/[S]⚑/[I].
 
+## 2026-07-17 — Governance Audit Task 1: obsolete documents archived, duplicated navigation removed
+
+**Type:** Repository maintenance (governance cleanup)
+**Commit:** 4c79019 (vault repo) — 7 files, 3 insertions / 31 deletions
+**Governing:** Governance Audit 2026-07-17 (AI-drafted, E4), Task 1 scope as approved by Architect
+**Push status:** committed, NOT yet pushed to origin/main at time of writing
+
+**Archived to `08_Archive/` (git-tracked renames, 100% similarity, history preserved):**
+- `01_Governance/Current Sprint.md` — content: "Sprint 1: Install Python, learn variables, learn loops." Falsified by reality; the pipeline has 37 passing tests and three scheduled Task Scheduler collections.
+- `01_Governance/Master Roadmap.md` — two lines, a pointer to Pre_Implementation_Artifact_Roadmap_v1.
+- `01_Governance/Learning Roadmap.md` — 0 bytes, linked from two governance headers.
+
+**Navigation removed (deletions only; no substantive content altered):**
+- `Research_Methodology_v2_Canonical.md` — 13-line pasted nav block sitting above the document title. The constitution's text begins at `# Research Methodology (Canonical)` and is untouched.
+- `ADR_Collection_v2.0.md` — 13-line pasted nav block between title and Document ID header. No ADR body touched.
+- `00_MOC/Home.md` — two dead links ([[Master Roadmap]], [[Current Sprint]]).
+
+Both nav blocks were unauthorized duplicates of the Home MOC index (audit finding D5) that had already drifted from Home and from each other. Home MOC is now the sole navigation layer.
+
+**Retained:**
+- `04_Experiments/Experiment Log.md` — blocked by a live cross-link from canonical `Brier Decomposition - Worked Example.md:4`. Deferred to Task 2.
+- `01_Governance/Pre_Implementation_Artifact_Roadmap_v1.md` — ARCHIVE candidate per audit, out of Task 1 scope.
+
+**Verification performed:** post-move grep for `[[Current Sprint]]`, `[[Master Roadmap]]`, `[[Learning Roadmap]]` across the vault (excluding .git and 08_Archive) returned zero hits. `git diff --cached --stat` confirmed deletions-only on all three governing documents. `file` confirmed LF line endings preserved on all touched files. Manifest regenerated (63 entries; three paths rewritten).
+
+### FINDINGS RECORDED
+
+**`08_Archive/` had never existed in Git.** ADR-022 (2026-07-07) declares the folder as part of the vault scheme, but Git does not track empty directories and nothing had ever been placed there. The folder existed only in the ADR's text for ten days. This commit creates it. Lesson: a declared-but-empty directory is not a fact about the repository — verify structure against `git ls-files`, not against the ADR that specifies it.
+
+**Three wikilinks were already broken before this task.** Both removed nav blocks contained links to files that do not exist under those names: `[[Future Directions]]` (ADR Collection) and `[[Future_Directions.md]]` (Methodology) — the real file is `Future_Directions.md.md`, a double-extension error; and `[[Pre_Implementation_Artifact_roadmap]]` (ADR Collection) — missing the `_v1` suffix. No working link was destroyed by their removal. This is direct evidence for the audit's D5 finding: the duplicated nav blocks had drifted and were not being maintained.
+
+**`Future_Directions.md.md` now has zero inbound links.** The two nav blocks were its only referrers; Home MOC never linked it. The file is load-bearing for ADR-020 (accepted 2026-07-06) and Master Spec §13. A canonical, accepted-ADR-referenced document is now orphaned from vault navigation — a pre-existing gap surfaced (not caused) by this cleanup. Flagged for Task 2, along with the filename fix.
+
+**Journal references left untouched deliberately.** `09_Journal/Vault Additions 2026-07-04.md` mentions Master Roadmap and Learning Roadmap at lines 94, 116, 117 — as plain prose in backticks and checkboxes, not wikilinks. They do not break, and journal entries are frozen history, not maintained guidance.
+
+### PROCESS FAILURES — AI-side, both caught by verification gates (KT Rank 5)
+
+**Failure 1 — CRLF corruption of three canonical documents.** The first edit script used Python's `write_text()`, which on Windows defaults to translating `\n` → `\r\n`. This silently converted `Home.md`, `ADR_Collection_v2.0.md`, and `Research_Methodology_v2_Canonical.md` from LF to CRLF, rewriting every line of all three. `git diff --stat` reported 1031 insertions / 1059 deletions instead of the predicted 0 / 28 — the gate fired correctly. The bad commit (f6618fb) was reset with `git reset --hard HEAD~1`; nothing had been pushed. Root cause: the dry run was executed in a Linux sandbox where the LF/CRLF distinction does not exist, so the defect could not surface before delivery. Fix: `newline=""` on both read and write. Note the read-side matters equally — it makes a CRLF file fail the block match loudly rather than be silently mangled. This directly threatened ADR-006's as-is line-ending decision, which exists to keep Markdown diffs readable.
+
+**Failure 2 — speculation ahead of evidence.** After the reset, `git mv` failed with "No such file or directory." The AI speculated about index/working-tree divergence and manifest counts rather than running `ls`. The actual cause was mundane: `08_Archive/` had been created by `mkdir -p` (untracked, empty) and was removed by the `--hard` reset, so `git mv` failed on the *destination*, not the source. Git's error message is ambiguous about which path is missing. One `ls -la 08_Archive/` answered it immediately. This is the third recorded instance of the "stated understanding did not match disk" pattern (cf. 2026-07-14 module build, 2026-07-15 Log Score V2 ratification record). The pattern is now established across three different failure surfaces — code, ratification records, and filesystem state.
+
+**Standing lesson reinforced:** verify against actual terminal output, never against expectation. Both failures were caught because the guide specified expected output at every step and stop points on mismatch — the beginner-proof format is load-bearing, not a courtesy.
+
+**Evidence grade:** E4 → **ratified by Architect 2026-07-17**. The archive/removal decisions are Architect-approved; the audit that recommended them remains E4 pending item-by-item verification.
