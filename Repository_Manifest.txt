@@ -17,12 +17,9 @@
 01_Governance/ADR-022 — Vault Folder Scheme (Hybrid).md
 01_Governance/ADR_Collection_v2.0.md
 01_Governance/Bootstrap_Log.md
-01_Governance/Current Sprint.md
 01_Governance/Decision Log.md
 01_Governance/Future_Directions.md.md
-01_Governance/Learning Roadmap.md
 01_Governance/Market_Normalization_Spec_v2.md
-01_Governance/Master Roadmap.md
 01_Governance/Pre_Implementation_Artifact_Roadmap_v1.md
 01_Governance/Research_Lab_Master_Specification_v1.md
 01_Governance/Research_Methodology_v2_Canonical.md
@@ -57,6 +54,9 @@
 07_References/Data_Sources/Kalshi Ticker Anatomy and Market Structure.md
 07_References/Data_Sources/NOAA.md
 07_References/Data_Sources/National Weather Service.md
+08_Archive/Current Sprint.md
+08_Archive/Learning Roadmap.md
+08_Archive/Master Roadmap.md
 09_Journal/Vault Additions 2026-07-04.md
 Repository_Manifest.txt
 Templates/Templates/Pre-Registered Experiment Template.md

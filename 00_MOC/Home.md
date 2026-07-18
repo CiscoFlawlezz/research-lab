@@ -4,8 +4,6 @@
 
    ## Governance
    - [[Research Methodology v2]]
-   - [[Master Roadmap]]
-   - [[Current Sprint]]
    - [[Decision Log]]
    - [[ADR-022 — Vault Folder Scheme (Hybrid)]]
    - [[Bootstrap_Log]]
