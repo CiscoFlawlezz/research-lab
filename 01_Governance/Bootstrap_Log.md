@@ -373,3 +373,52 @@ the manifest nor this log — documentation lag, not a collection gap.
 
 NOTE: row count != city-day count. Amendments append as new rows (KAUS 3 and
 KPHX 6 rows on/through 07-16). n is counted in city-days per ADR-010.
+
+## 2026-07-19 — M1.T2 COMPLETE: Kalshi order-book depth collector (Option B), five cities
+
+**Type:** Collector build (irreversible market-microstructure accrual)
+**Status:** E4 — AI-drafted, pending Architect ratification (Invariant 3)
+**Push status:** NOT committed, NOT pushed (Architect action)
+
+**Built:** collectors/kalshi_observation_collector.py + storage.schema
+ensure_kalshi_observations + kalshi_client raw-fetch methods + config
+accessor + config.yaml cadence block + tests/test_kalshi_observations.py
+(21 tests) + run_kalshi_observations.bat (delivered, NOT scheduled).
+
+**Decisions (ratified 2026-07-19):** Option B (depth + fast-moving state,
+no slow-moving duplication — that stays in kalshi_markets). 5-min cadence,
+config-driven. Duplicate policy (i): every poll a new row, no UNIQUE.
+Scope: all five cities, open markets discovered live. Atomicity =
+transactional write of two jointly-fetched responses; either fetch fails
+-> whole observation discarded; both fetch Date headers stored so skew is
+auditable. True network simultaneity is impossible and not required.
+
+**F1 discipline:** parser built ONLY against real captures. Pre-build
+shape check across all five cities confirmed one uniform orderbook_fp
+shape and surfaced the empty-side case (one ladder can be []), which the
+parser and schema handle. Live run stored empty-side markets cleanly.
+
+**Verified live (throwaway DB, production untouched):** 60/60 obs ok, five
+cities x 12 markets, exit 0, dual timestamps (1s skew observed), snapshot
+store 0 orphan / 0 dangling. Test DB deleted after.
+
+**Full test suite: 69 passed, 0 failed.**
+
+### FINDINGS
+- Existing test count was 48, not the 37 in the record (suite grew with
+  the 07-16/17 multi-city + R5 work). Eighth record-vs-disk instance;
+  benign (more passing tests than remembered).
+- open_interest_fp moved intraday (991.80 capture -> 999.50 live 40 min
+  later), confirming Option B's fast-moving fields are worth per-poll
+  capture and are not backfillable from candlesticks.
+- Two Pythons on PATH: interactive bare `python` is a standalone 3.14
+  WITHOUT project deps; the pipeline runs venv\Scripts\python.exe. All
+  checks/tests this session used the venv Python. Not a defect, but a
+  footgun for future interactive verification — noted.
+
+### AI PROCESS NOTES (KT Rank 5)
+- New .py files saved CRLF by the editor twice; converted to LF to match
+  sibling collectors. .bat left CRLF (correct). Caught by `file` checks.
+- Sandbox config.py was the pre-edit copy, so one cadence test failed in
+  sandbox until the accessor was added there; on-disk config already had
+  it (verified Step 3). Named, not silently reconciled.
