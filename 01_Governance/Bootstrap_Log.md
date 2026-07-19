@@ -378,7 +378,7 @@ KPHX 6 rows on/through 07-16). n is counted in city-days per ADR-010.
 
 **Type:** Collector build (irreversible market-microstructure accrual)
 **Status:** E4 — AI-drafted, pending Architect ratification (Invariant 3)
-**Push status:** Committed 2026-07-19 (pipeline 53a0c93 collector + d1cccfe manifest generator; vault db7c0ae this log entry). NOT pushed to any origin -- all three commits are local only, pending Architect push.
+**Push status:** Committed and pushed 2026-07-19. Pipeline origin/main advanced 87e3998 -> d1cccfe (53a0c93 collector + d1cccfe manifest generator); vault origin/main advanced ccbe391 -> db7c0ae (this log entry). A later commit corrected this line (see log tail); that correction commit is pushed separately.
 
 **Built:** collectors/kalshi_observation_collector.py + storage.schema
 ensure_kalshi_observations + kalshi_client raw-fetch methods + config
