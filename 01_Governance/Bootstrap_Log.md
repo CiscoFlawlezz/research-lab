@@ -481,3 +481,41 @@ DELETE-by-parser_version rollback) but NOT executed. The 8 v1 rows remain untouc
   Windows /tmp footgun. Recovered via repo-local scratch files.
 - Initial DB query guessed column `city`; corrected to `location_id` after reading
   the real schema. Named, not silently reconciled.
+
+## 2026-07-20 — F-01 MIGRATION: 8 mis-keyed v1 summary rows re-derived as parser_version=2
+**Type:** Data correction on production pipeline.db (append-only; reversible)
+**Status:** E4 — AI-drafted, pending Architect ratification (Invariant 3)
+**Authorization:** Architect directed migration this session, after the F-01 fix
+(commit fa0a99f) and its resolution stamp were in place.
+**Safety before write:** state verified from disk (HEAD==origin 2d4fca1, suite 73
+green); pipeline.db WAL-checkpointed and file-copied to
+backups/pipeline_pre_f01_migration_20260720_224306.db (34 rows, verified openable
+and count-matched) BEFORE any write — the auto_backup gap means git does not cover
+the .db, so a file backup was mandatory.
+**What ran:** (1) ALTER TABLE raw_nws_cli ADD COLUMN covered_day_issuance_mismatch
+INTEGER (additive; existing rows -> NULL; count unchanged at 34). (2) Dry-run over
+the 8 parser_version=1 summary rows: each retrieved its snapshot body, ran
+derive_covered_day, asserted marker=YESTERDAY, delta=-1, flag=1 — all 8 clean, no
+insert. (3) Apply: 8 corrected rows inserted as parser_version=2 in ONE
+transaction (with in-transaction re-assertion of the same guarantees), copying all
+parent fields except the corrected climate_day and the flag, re-using the parent
+snapshot_hash. Count 34 -> 42.
+**Verified independently after write:** v1 summary rows unchanged (still 8, still
+showing the original late days — originals preserved as evidence). v2 rows = 8
+(ids 35-42), each climate_day == its snapshot header day, each with a v1 parent by
+hash, each covered_day_issuance_mismatch=1. Preliminaries untouched (26 v1, 0 v2).
+Suite still 73 green (data changed, not code). pipeline.db checkpointed, 42 rows.
+**Rollback:** DELETE FROM raw_nws_cli WHERE parser_version='2'. No v1 row was
+mutated, so rollback is total. File backup above is the belt-and-suspenders.
+**OPEN for ratification — read authority:** append-only correction means each of
+the 8 affected climate-days now has BOTH a v1 (wrong) and a v2 (correct) row. Any
+read that joins on (station, climate_day) WITHOUT filtering parser_version will
+double-count those 8 days. "Which parser_version is authoritative for reads" is now
+a required Architect decision. Recommend: reads select the highest parser_version
+per (product_id) — but that is not yet decided or implemented.
+### AI PROCESS NOTES (KT Rank 5)
+- Migration gated behind: real file backup, dry-run with per-row assertions, and
+  independent post-write verification — none skipped. No write occurred until the
+  dry-run showed ALL 8 CLEAN.
+- The dry-run was re-run once by accident before apply; harmless (read-only,
+  identical output). Named, not silently passed over.
