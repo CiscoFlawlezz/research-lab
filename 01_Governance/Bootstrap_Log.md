@@ -519,3 +519,36 @@ per (product_id) — but that is not yet decided or implemented.
   dry-run showed ALL 8 CLEAN.
 - The dry-run was re-run once by accident before apply; harmless (read-only,
   identical output). Named, not silently passed over.
+
+## 2026-07-21 — SESSION CLOSE: handoff committed, scratch cleared, tree clean
+**Type:** Session-close housekeeping (no code or data change)
+**Status:** E4 — AI-drafted, pending Architect ratification (Invariant 3)
+**Context:** Follows the F-01 RESOLVED and F-01 MIGRATION entries above, all
+ratified this session.
+**Done:**
+- Session handoff written and committed to the pipeline repo root:
+  SESSION_HANDOFF_2026-07-20_F01.md (238 lines). Pipeline origin/main advanced
+  2d4fca1 -> f82850b. The handoff is the permanent transition record for the
+  F-01 session (adjudication, parser v2, migration, ratification ledger) and is
+  itself E4.
+- Eight untracked session scratch scripts deleted from the pipeline repo
+  (query_f01, read_blob, read_blobs, capture_fixtures, validate_summaries,
+  migrate_f01_dryrun, migrate_f01_apply, verify_f01_migration). None were
+  tracked; deletion affects disk only, nothing in git history.
+- verify_f01_migration.py was deliberately removed rather than kept: it carried
+  a frozen-DB bug (asserted v2 prelim == 0), which falsely reported PROBLEM once
+  the live scheduler wrote rows. Its logic is captured in the handoff; do not
+  resurrect it as-is.
+**Final verified state (from disk):** pipeline HEAD f82850b == origin, working
+tree clean; vault HEAD d3b16f2 == origin; suite 73 passing; raw_nws_cli holds the
+8 migration rows (ids 35-42) plus ongoing live scheduler rows.
+**Carried forward (open, next session):** (1) read-authority decision — which
+parser_version wins on reads; ADR-worthy, blocks downstream reads/V2. (2) Kalshi
+depth collector scheduling ([ACC][IRR], highest accrual cost). (3) remaining
+review findings: F-13 / 11am ET rule (read MIA/AUS PDFs first), forecast
+collector (F2, [IRR]), collection_runs audit rows, auto-backup remediation.
+### AI PROCESS NOTES (KT Rank 5)
+- Handoff committed by explicit path (git add <file>), never git add -A, to keep
+  the scratch scripts out of the commit.
+- Scratch deletion is unrecoverable (untracked); files named explicitly rather
+  than by wildcard so nothing unintended was removed.
