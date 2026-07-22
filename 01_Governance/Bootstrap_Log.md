@@ -552,3 +552,27 @@ collector (F2, [IRR]), collection_runs audit rows, auto-backup remediation.
   the scratch scripts out of the commit.
 - Scratch deletion is unrecoverable (untracked); files named explicitly rather
   than by wildcard so nothing unintended was removed.
+
+## 2026-07-22 — VERIFY: Kalshi observation collector never scheduled / zero production accrual (Adjudication C)
+**Type:** Verification finding (no code, config, or DB change this session)
+**Status:** E4 — AI-verified, pending Architect ratification (Invariant 3)
+**Session:** First Claude Code session (Priority 1: verify Kalshi collector scheduling). Repo HEAD f0edb39 == origin at session start; suite 73/73 green (via venv Python — bare `python` on PATH is a non-project 3.14 interpreter).
+**Question:** Is the Kalshi observation collector ([ACC][IRR]) actually scheduled and firing?
+**Finding — Adjudication (C), confirmed from disk:**
+- No registered Task Scheduler task for Kalshi. Only WeatherPipeline_Backup, WeatherPipeline_CLI_Primary/Amendment/Final exist (plus a disabled weather-pipeline-backup).
+- No `scheduler/*.xml` for Kalshi (only Backup + the three CLI tasks).
+- `run_kalshi_observations.bat` exists at repo root; its own header states it was DELIVERED BUT NOT YET SCHEDULED, to be registered only on Architect instruction.
+- Worse than a stoppage: `pipeline.db` has NO `kalshi_observations` table at all. Per the 2026-07-19 M1.T2 entry, the collector has only ever run against a throwaway test DB. **Production has never been touched — zero accrual since the collector shipped 2026-07-19.**
+- `logs/` has zero `kalshi_obs_*.log` files.
+- Collector health confirmed: manual test-run against a scratch DB this session returned 60/60 observations ok, exit 0. The collector is ready; only registration is missing.
+- Configured cadence: `cadence_minutes: 5` (config.yaml).
+**Consequence:** every 5-minute order-book-depth interval across all five cities since 2026-07-19 is permanently lost (depth is not reconstructable from candlesticks), and loss continues until registration.
+**Logon-pattern comparison (read-only, for the registration mirror + Priority 2):**
+- The three CLI tasks that DO fire: InteractiveToken + LeastPrivilege, "Interactive only," RunAs rjkir, all Last Result 0. Proven-good but "Interactive only" = runs only when logged in.
+- Backup task: Password logon (explicit SID + stored credential), "Interactive/Background," HighestAvailable — survives logout, but a distinct setup path.
+- **Open Priority 2 question flagged:** should collectors use the survives-logout pattern (Backup) or the only-when-logged-in pattern (CLI)? "Interactive only" is a latent silent-stoppage risk if the machine is logged out. Not decided this session.
+**Action taken:** NONE. No task registered, no DB written, nothing changed — per Architect instruction to report/record first. Registration deferred to a deliberate next step.
+**Next:** Architect to decide (a) register now on the proven CLI InteractiveToken pattern to stop the bleed, accepting a possible later re-registration if Priority 2 moves collectors to the survives-logout pattern; or (b) decide the logon pattern first, then register. First scheduled run will be the first-ever production write to a new `kalshi_observations` table → run `scripts/backup_db.py` first (guardrail #2).
+### AI PROCESS NOTES (KT Rank 5)
+- Verify-first held: no registration or DB write; adjudication (C) stated before any proposed change; used venv Python throughout (avoided the bare-`python` footgun).
+- Declined a blanket `schtasks *` approval — `schtasks` also creates/changes/deletes tasks, so it stays per-invocation to preserve guardrail #1.
