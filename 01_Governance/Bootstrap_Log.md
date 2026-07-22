@@ -576,3 +576,18 @@ collector (F2, [IRR]), collection_runs audit rows, auto-backup remediation.
 ### AI PROCESS NOTES (KT Rank 5)
 - Verify-first held: no registration or DB write; adjudication (C) stated before any proposed change; used venv Python throughout (avoided the bare-`python` footgun).
 - Declined a blanket `schtasks *` approval — `schtasks` also creates/changes/deletes tasks, so it stays per-invocation to preserve guardrail #1.
+
+## 2026-07-22 — REGISTER: Kalshi observation collector scheduled, production accrual started
+**Type:** Standing-config change + first-ever production write (new table)
+**Status:** E4 — AI-executed under Architect approval, pending ratification (Invariant 3)
+**Session:** Second Claude Code session (Priority 1.5: register Kalshi collector). Follows the P1 finding (vault c7e2aeb) that it had never been scheduled.
+**Decision:** Register now on the proven CLI pattern (InteractiveToken + LeastPrivilege, "Interactive only", RunAs rjkir) to stop the bleed; the survives-logout question is deferred to P2. A working schedule accruing data beats a perfect one not yet running.
+**Safety before write:** scripts/backup_db.py ran and verified BEFORE any production write (VACUUM INTO + integrity + row-count + hash, generation 5). Collector re-proven clean on a throwaway DB (60/60 observations, exit 0); scratch DB deleted. First-ever write to a new kalshi_observations table.
+**Registered:** WeatherPipeline_Kalshi under \WeatherPipeline\, via `schtasks /Create /XML scheduler\WeatherPipeline_Kalshi.xml /TN "WeatherPipeline\WeatherPipeline_Kalshi" /RU rjkir /IT`. Trigger: CalendarTrigger + ScheduleByDay (DaysInterval=1) + Repetition Interval=PT5M, no Duration → indefinite 5-min cadence (matches config cadence_minutes: 5). MultipleInstancesPolicy=IgnoreNew, ExecutionTimeLimit=PT10M, WakeToRun=true, RunOnlyIfNetworkAvailable=true. Committed export scheduler/WeatherPipeline_Kalshi.xml (UTF-16LE, matching the other four; pipeline commit <cb66381>).
+**Verified firing (not just registered):** first fire 2026-07-22T02:44:50Z (10:44:50 PM local), Last Result 0 after completion (transient SCHED_S_TASK_RUNNING correctly distinguished from failure). Production pipeline.db kalshi_observations table now exists: 60 rows, 12 per city × 5 cities, dual fetch timestamps, collector_version='1'. Next fire queued (10:50 PM) — recurring cadence confirmed, not a one-off. New logs/kalshi_obs_*.log with exit 0.
+**Consequence closed:** production accrual has started. The zero-accrual gap since 2026-07-19 is ended (that lost window remains permanently unrecoverable).
+**Still open (P2):** InteractiveToken means collection runs only while logged in — a silent-stoppage risk on logout. The survives-logout logon-pattern decision (Backup-style Password logon vs CLI InteractiveToken) is deferred to P2 and may re-register all collectors together.
+### AI PROCESS NOTES (KT Rank 5)
+- Backup-first held (guardrail #2) before the first production write; no write until the scratch-DB run was clean.
+- schtasks kept per-invocation approval (never blanket-allowed), since the same verb creates/changes/deletes.
+- STOP 3 verified real rows by timestamp, not "task registered" — the P1 false-success lesson applied. The transient task-running status code was distinguished from a failure code by re-checking after completion.
