@@ -219,7 +219,7 @@ F2 (series-ticker rules verification).
   high=108, low=82, parser_version 1. Re-run correctly skipped the duplicate product.
   Full suite: 37 passed. No .db or sample committed.
 
-  Status: E4, ungraded pending Architect ratification (Invariant 3).
+  **Status:** E3 — Ratified by Architect (Invariant 3)
 
   OPEN AFTER THIS SESSION:
   - .gitignore change (sample_cli_*.txt) committed separately AFTER ef53c62; and
@@ -377,7 +377,7 @@ KPHX 6 rows on/through 07-16). n is counted in city-days per ADR-010.
 ## 2026-07-19 — M1.T2 COMPLETE: Kalshi order-book depth collector (Option B), five cities
 
 **Type:** Collector build (irreversible market-microstructure accrual)
-**Status:** E4 — AI-drafted, pending Architect ratification (Invariant 3)
+**Status:** E4 — Ratified by Architect, pending (Invariant 3)
 **Push status:** Committed and pushed 2026-07-19. Pipeline origin/main advanced 87e3998 -> d1cccfe (53a0c93 collector + d1cccfe manifest generator); vault origin/main advanced ccbe391 -> db7c0ae (this log entry). A later commit corrected this line (see log tail); that correction commit is pushed separately.
 
 **Built:** collectors/kalshi_observation_collector.py + storage.schema
@@ -425,7 +425,7 @@ store 0 orphan / 0 dangling. Test DB deleted after.
 
 ## 2026-07-20 — F-01 RESOLVED: climate_day derived from CLI body, not issuance time (parser v2)
 **Type:** Settlement-key correctness fix (verification-first; append-only)
-**Status:** E4 — AI-drafted, pending Architect ratification (Invariant 3)
+****Status:** E3 — Ratified by Architect (Invariant 3)
 **Push status:** Committed and pushed 2026-07-20. Pipeline origin/main advanced
 d1cccfe -> 2d4fca1: fa0a99f (parser v2 + fixtures + tests), 96ba6b9 (add
 Final_Architectural_Review_2026-07-19.md, previously untracked), 2d4fca1 (review
@@ -484,7 +484,7 @@ DELETE-by-parser_version rollback) but NOT executed. The 8 v1 rows remain untouc
 
 ## 2026-07-20 — F-01 MIGRATION: 8 mis-keyed v1 summary rows re-derived as parser_version=2
 **Type:** Data correction on production pipeline.db (append-only; reversible)
-**Status:** E4 — AI-drafted, pending Architect ratification (Invariant 3)
+**Status:** E3 — Ratified by Architect (Invariant 3)
 **Authorization:** Architect directed migration this session, after the F-01 fix
 (commit fa0a99f) and its resolution stamp were in place.
 **Safety before write:** state verified from disk (HEAD==origin 2d4fca1, suite 73
@@ -522,7 +522,7 @@ per (product_id) — but that is not yet decided or implemented.
 
 ## 2026-07-21 — SESSION CLOSE: handoff committed, scratch cleared, tree clean
 **Type:** Session-close housekeeping (no code or data change)
-**Status:** E4 — AI-drafted, pending Architect ratification (Invariant 3)
+**Status:** E3 — Ratified by Architect (Invariant 3)
 **Context:** Follows the F-01 RESOLVED and F-01 MIGRATION entries above, all
 ratified this session.
 **Done:**
@@ -555,7 +555,7 @@ collector (F2, [IRR]), collection_runs audit rows, auto-backup remediation.
 
 ## 2026-07-22 — VERIFY: Kalshi observation collector never scheduled / zero production accrual (Adjudication C)
 **Type:** Verification finding (no code, config, or DB change this session)
-**Status:** E4 — AI-verified, pending Architect ratification (Invariant 3)
+**Status:** E3 — Ratified by Architect 2026-07-23 (Invariant 3)
 **Session:** First Claude Code session (Priority 1: verify Kalshi collector scheduling). Repo HEAD f0edb39 == origin at session start; suite 73/73 green (via venv Python — bare `python` on PATH is a non-project 3.14 interpreter).
 **Question:** Is the Kalshi observation collector ([ACC][IRR]) actually scheduled and firing?
 **Finding — Adjudication (C), confirmed from disk:**
@@ -604,3 +604,53 @@ collector (F2, [IRR]), collection_runs audit rows, auto-backup remediation.
 ### AI PROCESS NOTES (KT Rank 5)
 - The initial `schtasks /Change /RP` (empty) approach FAILED ("Access is denied" + empty-password warning): bare /RP prompts securely on /Create but NOT on /Change. Recovered via the Task Scheduler GUI's secure credential dialog. Password never entered on a command line or in this session.
 - Caught a real drift: the GUI checkbox set Password logon but did NOT set RunLevel, leaving the live task LeastPrivilege while the on-disk XML still claimed HighestAvailable. Found by re-exporting the live task and diffing, not by trusting the /query summary (which doesn't surface RunLevel). Reconciled the file to reality deliberately.
+
+## 2026-07-23 — VERIFY: Kalshi + NWS collection outage, DNS resolution failure (2026-07-22)
+**Type:** Verification finding (no code/config/DB change)
+**Status:** E3 — Ratified by Architect 2026-07-23 (Invariant 3)
+**Session:** Fourth Claude Code session (survives-logout proof, Task 1).
+**Bound by log timestamps only:** 2026-07-22 01:00:19 local (last successful Kalshi sweep, logs/kalshi_obs_2026-07-22.log) to 2026-07-22 23:35:21 local (first successful Kalshi sweep after, same file). Every attempt in between failed identically.
+**Evidence:** logs/kalshi_obs_2026-07-22.log shows all five cities failing every 5-minute sweep attempt with `KalshiError: Network error ... NameResolutionError("... Failed to resolve 'api.elections.kalshi.com' ([Errno 11001] getaddrinfo failed)")`. logs/automation_2026-07-22.log independently shows the NWS CLI collector failing at 18:13:32 local with the identical NameResolutionError pattern against a different host, `api.weather.gov`. Two unrelated collectors, two unrelated hostnames, same failure signature, overlapping window — this is machine-wide DNS resolution failure, not a Kalshi-specific or SQLite-lock-contention issue (a contention hypothesis was raised and is explicitly refuted by this evidence).
+**Root cause of the DNS failure itself is not established and is not asserted** (router/ISP/local resolver — no basis in these two logs to pick one).
+**Data loss:** every 5-minute order-book depth interval in this window is permanently lost — candlestick OHLC does not reconstruct bid/ask depth ([ACC][IRR]).
+**Machine state during the window:** mixed — asleep for part of the span, awake-and-failing for the remainder (see separate sleep/wake-protection finding). DNS failed identically in both states.
+### AI PROCESS NOTES (KT Rank 5)
+- An initial hypothesis (SQLite lock contention between CLI_Primary and the 5-min Kalshi sweep, per the known busy_timeout gap already documented in CLAUDE.md) was raised before the logs were read. It was tested against logs/automation_2026-07-22.log and refuted there: a different host failed with the identical NameResolutionError, which lock contention cannot explain. Recorded as refuted, not silently dropped.
+- Root cause of the DNS failure itself was deliberately not speculated on beyond what these two candlestick OHLC does not reconstruct bid/ask depth ([ACC][IRR]).
+**Machine state during the window:** mixed — asleep for part of the span, awake-and-failing for the remainder (see separate sleep/wake-protection finding). DNS failed identically in both states.
+### AI PROCESS NOTES (KT Rank 5)
+- An initial hypothesis (SQLite lock contention between CLI_Primary and the 5-min Kalshi sweep, per the known busy_timeout gap already documented in CLAUDE.md) was raised before the logs were read. It was tested against logs/automation_2026-07-22.log and refuted there: a different host failed with the identical NameResolutionError, which lock contention cannot explain. Recorded as refuted, not silently dropped.
+- Root cause of the DNS failure itself was deliberately not speculated on beyond what these two log files show.
+
+## 2026-07-23 — FINDING: Kalshi depth collector's Timer wake fired once, then stopped — no working sleep/wake protection across ~19h [ACC][IRR]
+**Type:** Verification finding (no code/config/DB change)
+**Status:** E3 — Ratified by Architect 2026-07-23 (Invariant 3)
+**Session:** Fourth Claude Code session (survives-logout proof, Task 1).
+**Evidence:** Microsoft-Windows-Power-Troubleshooter event log (Get-WinEvent, LogName=System) confirms a Timer wake for this exact task fired correctly once: 2026-07-21 23:59:47 local, "Windows will execute 'NT TASK\WeatherPipeline\WeatherPipeline_Kalshi' scheduled task that requested waking the computer." For the three sleeps that followed, `WakeToRun=true` is present in the task's XML but none of them show a Timer wake for this task — all three record `Wake Source: Unknown`: 2026-07-22T06:01:00Z → 2026-07-22T22:07:32Z (~16h06m); 2026-07-23T00:08:35Z → 2026-07-23T03:31:26Z (~3h23m); 2026-07-23T07:00:56Z → 2026-07-23T16:48:50Z (~9h48m).
+**Data loss:** every 5-minute interval within these ~19 hours is permanently lost ([ACC][IRR] — depth is not reconstructable from candlesticks).
+**Classification:** narrower than "unresolved" — WakeToRun is confirmed to work for this task under some condition and confirmed to fail under another, three times in a row, immediately after the one working instance. Cause of the working/non-working split not investigated this session (deliberately held).
+### AI PROCESS NOTES (KT Rank 5)
+- The evidence line originally carried an inline "— corrected:" edit during drafting (a UTC date typo: `2026-07-22T00:08:35Z` should have read `2026-07-23T00:08:35Z` — the sleep crosses the UTC day boundary). Caught before finalizing; the entry above states only the corrected value, per instruction not to leave the correction inline.
+- Reframed the classification from blanket "unresolved" to "worked once, then stopped" at the Architect's direction — the narrower claim is falsifiable in a way the broader one wasn't.
+
+## 2026-07-23 — FINDING: "RL-FIX register" confabulation instruction recurred, caught by disk verification (not by the existing log entry)
+**Type:** Process finding (AI/session governance, no code/config/DB change)
+**Status:** E3 — Ratified by Architect 2026-07-23 (Invariant 3)
+**Session:** Fourth Claude Code session (survives-logout proof, Task 1 follow-on).
+**What happened:** the Architect instructed this session to file a finding "as an RL-FIX register entry." Before drafting, this session checked disk (`grep -ril "RL-FIX" .` and `git log --all --oneline | grep -i RL-FIX` in the pipeline repo, and a grep of the vault) and found no such register anywhere — and found that this vault's own Bootstrap_Log (~line 464) already records "RL-FIX-001 register with findings F-01..F-15" as a prior-session confabulation, with no file or ID scheme behind it, confirmed by an `--all` git search.
+**Significance:** the existing log entry documenting the confabulation did not prevent it from resurfacing as a live instruction in a later session. It was caught this time only because the acting session checked disk before drafting — not because the prior record was consulted or remembered by anyone. This confirms it's the discipline of reading the artifact (CLAUDE.md guardrail 5) that defeats this failure mode, not the mere existence of a prior correction on record.
+**Resolution this session:** the requested content was filed as three standalone dated Bootstrap_Log entries (DNS outage, sleep/wake protection, return-code unreliability) instead of a register ID.
+### AI PROCESS NOTES (KT Rank 5)
+- Checked disk before writing anything, not after — so no invented register ID was produced this time, unlike the original incident.
+- Mechanism differs from the original: the earlier incident was the AI confabulating the register unprompted from memory; this one was the AI being instructed by the human to file into it. Different origin, same nonexistent artifact — worth the Architect's attention as a recurring pattern independent of which side introduces it.
+
+## 2026-07-23 — FINDING: Task Scheduler's recorded return code for WeatherPipeline_Kalshi does not reflect the wrapper's actual exit status
+**Type:** Verification finding (no code/config/DB change)
+**Status:** E3 — Ratified by Architect 2026-07-23 (Invariant 3)
+**Session:** Fourth Claude Code session (survives-logout proof, Task 1).
+**Note:** there is no RL-FIX register or F-ID scheme on disk or in this vault to file this under — see the separate entry on that confabulation resurfacing this session. Filing this as its own dated entry instead.
+**Evidence:** run_kalshi_observations.bat read in full. Its only three exit paths are `exit /b 20` (fatal, cd to repo root fails), `exit /b 0` (an attempt succeeded), or `exit /b !RC!` where RC is the raw exit code returned by venv/Scripts/python.exe — confirmed by the wrapper's own log lines ("FAILURE on attempt 1/2 (exit 1)") to be the small integer `1` during the DNS-outage window. During that same window, the Microsoft-Windows-TaskScheduler/Operational event log recorded the completed action's return code as `2147942401` (most instances) and `2147943691` (one instance) — never `0`, never `1`, never `20`.
+**Finding:** the wrapper cannot produce either recorded value under any of its own code paths. Task Scheduler's "return code" field, as reported through Get-WinEvent, is generated upstream of the wrapper's own error handling and does not reflect it. The wrapper's own log was the accurate, truthful signal (exit 1, matching the real DNS failure) the whole time; Task Scheduler's own completion-code reporting was not.
+**Implication:** reinforces (a third time this project) that scheduler-reported status — task existence, "Last Result 0," and now the raw action return code — is not a substitute for verifying rows with timestamps or the wrapper's own log content.
+### AI PROCESS NOTES (KT Rank 5)
+- Instructed explicitly not to decode 2147942401 / 2147943691 from prior knowledge of Windows error codes. Complied: the finding rests entirely on what run_kalshi_observations.bat's own code paths can and cannot produce, not on identifying what the numbers mean. 
