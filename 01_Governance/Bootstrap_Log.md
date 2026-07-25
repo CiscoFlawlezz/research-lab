@@ -654,3 +654,31 @@ collector (F2, [IRR]), collection_runs audit rows, auto-backup remediation.
 **Implication:** reinforces (a third time this project) that scheduler-reported status — task existence, "Last Result 0," and now the raw action return code — is not a substitute for verifying rows with timestamps or the wrapper's own log content.
 ### AI PROCESS NOTES (KT Rank 5)
 - Instructed explicitly not to decode 2147942401 / 2147943691 from prior knowledge of Windows error codes. Complied: the finding rests entirely on what run_kalshi_observations.bat's own code paths can and cannot produce, not on identifying what the numbers mean. 
+
+## 2026-07-24 — FEATURE: ntfy.sh failure notification added to both collector wrappers, verified end-to-end
+**Type:** Feature (code + config + tests) — committed bfe2315, pushed to origin/main
+**Status:** E3 — Ratified by Architect 2026-07-24 (Invariant 3)
+**Session:** Fifth Claude Code session (failure notification — the "instrument can now report its own silence" task).
+**Motivation:** the 2026-07-22 DNS outage (see prior entry) went unnoticed for two days because nothing reported the ~22h collection stoppage. This task builds the missing control: a wrapper that fails now pushes a notification.
+
+**What was built:**
+- `scripts/notify_failure.py` (new): invoked by absolute path from a wrapper's failure branch as `"%PYTHON%" "%REPO%\scripts\notify_failure.py" --wrapper NAME --rc CODE`. POSTs to ntfy on failure, wraps its entire body in try/except, and ALWAYS exits 0 — it can never alter the calling wrapper's exit code. Reads topic/server via `core.config.notify_config()`.
+- `core/config.py` (modified): added `_load_secrets()` and `notify_config()`. The ntfy topic is credential-like, so it is read from a SEPARATE gitignored `secrets.yaml`, never from committed `config.yaml`. Missing secrets.yaml raises `ConfigError`, which `notify_failure.py` treats as a loud no-op (SKIPPED log line), not a crash.
+- `secrets.yaml.example` (committed): documents the shape; contains no real topic.
+- Wrapper hooks: exactly the four REAL failure branches — the two `exit /b 20` cd-failures and the two `exit /b !RC!` double-failures in `run_kalshi_observations.bat` and `run_cli_collection.bat`. Attempt-1 retry paths are deliberately NOT hooked (an attempt that recovers on attempt 2 is not a wrapper failure). The notify line sits BEFORE the pre-existing `exit /b`, which is untouched — exit code preserved byte-for-byte.
+- Tests: `test_notify_failure.py`, `test_wrapper_notify_exit_code.py`, `test_notify_failure_real_invocation.py`. Suite went 73 → 83 passing.
+
+**Concurrency confirmed from disk (not assumed):** `scheduler/WeatherPipeline_Kalshi.xml:28` sets `MultipleInstancesPolicy=IgnoreNew`. A notify call (capped at 5s) that outlives its 5-minute window causes Task Scheduler to skip the next trigger, not overlap — at worst one skipped sweep, never a pileup.
+
+**Verification (the part that mattered):** a green 83-test suite was NOT accepted as done. A real induced failure was run, invoked exactly as the wrapper invokes it (absolute path, subprocess). A real ntfy push was confirmed ARRIVING ON DEVICE — reading `induced_verification failed (exit 1)` — before commit. Server HTTP 200 alone was explicitly treated as insufficient.
+
+**Bug found and fixed during verification (would have shipped silently otherwise):** the first real induced-failure run raised `ModuleNotFoundError: No module named 'core'`. When Python runs a script by file path, `sys.path[0]` is the script's own directory (`scripts/`), not the repo root, so `import core` failed. All three test layers had MASKED this — pytest puts repo root on sys.path; the exit-code test used a stand-in that never imports `core`. This would have failed silently in production the first time either wrapper hit a real failure — the exact silent-notifier failure class this task exists to prevent. Fixed by inserting the repo root onto sys.path inside `notify_failure.py` before the `core` import. A subprocess regression test (`test_notify_failure_real_invocation.py`) now reproduces the bug via real by-path invocation from an unrelated cwd and proves no live network call occurs (local sink server receives exactly one POST).
+
+**Data-integrity note:** no DB mutation in this change set — code, config, wrappers, tests only. `scripts/backup_db.py` correctly not required (it guards DB mutations specifically).
+
+**Out of scope this session (untouched, as instructed):** F2 forecast collector; WakeToRun sleep/wake investigation; wrapper `busy_timeout` hardening; moving CLI tasks to survives-logout; read-authority ADR; rows-per-ticker anomaly.
+
+### AI PROCESS NOTES (KT Rank 5)
+- Caught and self-corrected a bug mid-implementation: the first cd-failure hook used a RELATIVE `scripts\notify_failure.py` path, which cannot resolve because the cd that just failed never changed cwd to REPO. Corrected to absolute `"%REPO%\scripts\..."` before it reached disk. The relative-path draft never persisted.
+- The by-path import bug is the load-bearing lesson: a fully green test suite (83 passing) coexisted with a notifier that was 100% broken in production. Only real induced-failure-on-device verification exposed it. "Green suite + plausible fix" was the exact state occupied five minutes before the bug was found. Device delivery, not exit code, is the authority.
+- Known open follow-up (not fixed this session): `test_notify_failure_real_invocation.py` mutates the real `secrets.yaml` via a backup/swap/restore cycle. An interrupted run could fail to restore and silently lose the topic. Should be moved to a temp config path in a later session.
