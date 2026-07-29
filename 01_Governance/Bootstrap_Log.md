@@ -714,3 +714,385 @@ collector (F2, [IRR]), collection_runs audit rows, auto-backup remediation.
 ### AI PROCESS NOTES (KT Rank 5)
 - Self-caught error: the first pass at extracting `WakeSourceType`/`WakeSourceText`/`WakeTimerOwner` from the Power-Troubleshooter event used wrong property indices, producing a plausible-looking but fabricated value (`WakeTimerOwner='SystemEventsBroker'`). Caught by cross-checking against raw XML printed earlier in the same session, before any conclusion was drawn from the mis-indexed data.
 - Corrected, at the Architect's direction, a second-pass error in drafting this entry itself: initially attributed the prior entry's wrongness to "a smaller time window" (glossing over it) and carried its "~19h" figure forward unexamined. Both corrected here: the prior entry's error was a wrong mechanism interpretation drawn from a real but partial observation, not merely a narrower window; and the loss total is recomputed from this session's own evidence rather than inherited.
+
+## 2026-07-29 — F2 PREREQUISITE: NWSClient raw-capture methods (provenance-correct byte capture)
+**Type:** Client-layer addition + test suite (F2 blocker, additive only)
+**Status:** E4 — AI-drafted and AI-executed under Architect approval, pending ratification (Invariant 3)
+**Session:** Claude Code session, planning/review partner in chat. Scoped as step 1 of a
+five-step gated F2 build (see companion entry, design rulings). Six review rounds.
+**Push status:** Committed `38afc5a` and pushed 2026-07-29. Pipeline origin/main
+advanced `38afc5a` -> `bfe2315`. Verified `HEAD == origin/main` from the Architect's
+terminal. Push creates an off-machine backup fact, not a ratification fact.
+
+**Task:** The F2 forecast collector requires raw response bytes to satisfy Invariant 3
+(snapshot what you cite). NWSClient could not supply them. This step closed that gap and
+nothing else -- no collector code, no scheduling, no DB write.
+
+**Confirmed blocker (from disk):** `nws_client.py::_get()` returns `resp.json()` only;
+`resp.content` is never captured. Both `get_points()` and `get_hourly_forecast()` route
+through it, so both external bodies lost their raw bytes. Snapshotting
+`json.dumps(parsed).encode()` would produce different bytes than NWS sent (separator
+whitespace, `ensure_ascii` escaping of non-ASCII, float repr) and therefore a different
+SHA-256 -- a FALSE provenance claim in the snapshot store, not a missing one.
+
+**Built (all additive; `_get`, `get_points`, `get_hourly_forecast`,
+`get_latest_observation` byte-for-byte unchanged, and no existing caller touched):**
+- `_get_raw(url, params)` -> `(parsed_json, raw_bytes, server_date_header)`. Captures
+  `resp.content` BEFORE `.json()`. Date header returned as `None` when absent -- NWS is
+  never assumed to send one. Mirrors `KalshiClient._get_raw`, so both API clients share
+  one raw-capture idiom.
+- `get_points_raw(lat, lon)` -> `PointsRaw` NamedTuple. Deliberately bypasses
+  `get_points()`'s `_points_cache`.
+- `get_hourly_forecast_raw(lat, lon)` -> `HourlyForecastRaw` NamedTuple (6 fields).
+  Preserves the points -> forecastHourly chain and both responses' bytes and Date headers.
+- `PointsRaw` / `HourlyForecastRaw` NamedTuples chosen over bare tuples (matching the
+  existing `TickerResult` precedent, not the private `_fetch_both` idiom) because these
+  are public methods whose returns collector code and tests unpack; field names prevent
+  silent mis-ordering at the call site.
+- Module docstring corrected: the "grid mappings cached per city for the process lifetime"
+  claim is now scoped to `get_points()`, with the raw path named as an explicit exception.
+
+**Tests:** `tests/test_nws_client.py`, 11 tests, all mocked at `session.get`. No network,
+no fixture. Covers: byte-identity of the returned body; SHA-256 of the raw bytes NOT equal
+to SHA-256 of a re-serialization (the assertion that encodes WHY the method exists);
+Date header present and absent; all three `_get_raw` failure modes including the one that
+diverges from `_get`; six-field return unpacked BY NAME; call ordering (`/points` first,
+second fetch uses the `forecastHourly` URL from the points body, never a constructed grid
+URL); coordinate rounding reaching the wire; the bare-`KeyError` path; and the cache
+bypass proven by call count.
+
+**Suite:** 83 -> 86 (first 3 tests) -> 94 (7 gap tests + 1) -> 96 (final 2).
+All three counts (86, 94, 96) confirmed by the Architect's own terminal, not
+accepted as AI testimony.
+
+### FINDINGS
+- **F-NWS-1 (confirmed, from disk):** `NWSClient` had NO production consumer. It is
+  referenced across three handoff documents as "already has the methods," and its only
+  caller was `test_connections.py`'s one-shot connectivity check. `nws_cli_collector.py`
+  does not use it at all -- it issues its own `requests.get`. The F2 collector will be
+  the class's first production caller. Same shape as the Kalshi collector that had never
+  run: an artifact doing rhetorical work in planning documents that it was not doing on
+  disk. "The code exists" is not "the code runs." Recorded separately as a generalizable
+  lesson (see companion FINDING entry).
+- **F-NWS-2 (confirmed by AI read, NOT independently printed by the Architect):** `_get`'s
+  final `return resp.json()` sits OUTSIDE its `try` block, so a malformed body there
+  propagates as an uncaught `JSONDecodeError`, never converted to `NWSError`. `_get_raw`
+  DOES convert it. The divergence is a deliberate improvement and is now stated explicitly
+  in the docstring, replacing an earlier false "exactly like `_get`" parity claim. Consequence
+  for the collector build: a caller wrapping `_get` would also need to catch `ValueError`
+  to get equivalent coverage.
+- **F-NWS-3 (confirmed by the Architect's own terminal):** exactly ONE of ten configured
+  coordinates renders fewer than four decimals on the wire. `phoenix` -> `33.4484,-112.074`
+  (three decimals); nyc/chicago/miami/austin all render four. `config.yaml` WRITES phoenix
+  `lon: -112.0740`, padded to four places, but YAML parses that to the float `-112.074` and
+  the trailing zero is gone before `round()` or any pipeline code sees it. **The
+  human-facing config says four; the wire gets three.** This is lesson #17 (file and
+  reality drift) in miniature: it survives a careful read of the config because the config
+  looks right. Do NOT "fix" `config.yaml`; the float is the same number. Pinned by test
+  against phoenix's real production coordinates.
+  Calibration: 4 vs 3 decimals of longitude is ~11m vs ~110m, both well inside one ~2.5km
+  NWS grid cell, so the resolved gridpoint is very likely identical. This is a
+  test-fidelity and documentation finding, NOT a suspected data defect. **Whether NWS's
+  `/points` endpoint tolerates variable decimal precision remains UNVERIFIED** and is on
+  the step-4 checklist. Note the trap: phoenix is both the only affected city and the only
+  city with live CLI collection, so a naive "test against Phoenix first" would calibrate
+  on the outlier.
+- **F-NWS-4 (open, deliberate):** the coordinate rounding changed category. In
+  `get_points()` it was a cache key with no effect on correctness. In `get_points_raw()`
+  there is no cache, so it now DETERMINES which URL is fetched -- which grid, which
+  forecast. Variable renamed off `key` to `rounded_coords` and the semantics documented.
+- **F-NWS-5 (open, binding on step 3):** all 11 tests are `MagicMock`-based. Correct for
+  logic, but `_get_raw` has never touched a real `requests.Response` -- real `resp.content`,
+  a real case-insensitive header dict (the mock uses a plain `dict`: stricter than reality,
+  so not a bug, but not coverage either), a real `json.JSONDecodeError` instead of a mocked
+  `ValueError`. **The step-3 live capture MUST route through `get_hourly_forecast_raw()`
+  and must NOT use ad-hoc `requests.get`.** Bypassing the new methods would leave them as
+  code with no real caller and make step 4 validate a path production never takes. Recorded
+  as binding by Claude Code in its own words.
+
+### AI PROCESS NOTES (KT Rank 5)
+- Claude Code named its own test-helper bug unprompted: `_mock_response` eagerly called
+  `json.loads(content)` as a default, crashing during mock construction for the two tests
+  that deliberately pass malformed bodies. Fixed with a `try/except ValueError` fallback.
+  Verified that the malformed-JSON test sets its own `side_effect` explicitly rather than
+  depending on that fallback to manufacture the failure it asserts -- the test would still
+  pass if the fallback were removed.
+- Told that the M2.T4a/M2.T4b precedent existed and instructed to verify rather than accept
+  it: searched the pipeline repo (no hits), then the vault, found
+  `01_Governance/Decision Log.md` lines 13-19, cited them, and read read-only. The
+  verify-don't-trust loop worked as designed.
+- Chose the NamedTuple against the review's non-blocking suggestion by reasoning from the
+  repo's own precedent rather than deferring. Correct behavior.
+- Three separate items this session were correct prose with nothing enforcing them (see
+  companion FINDING entry). All three needed an Architect review round to convert into
+  assertions.
+- One instruction was NOT honored, repeatedly: "show me the final file section verbatim,
+  not a diff of a diff." Rendered diffs and collapsed tool-output lines were supplied
+  instead. See companion FINDING entry -- the fix landed on the Architect's side, not
+  Claude Code's.
+
+## 2026-07-29 — F2 DESIGN RULINGS: settlement-day keying, table name, version constant, write policy
+**Type:** Architect rulings on an E4 design memo (pre-implementation gate)
+**Status:** E4 as a RECORD — AI-drafted entry, pending Architect ratification (Invariant 3).
+The four rulings below were made BY the Architect in session; this entry is the unratified
+transcription of them, not the authority for them.
+**Session:** Same session as the F2 prerequisite entry. Implementation was gated behind a
+mandatory design memo; no code was written until the memo was graded.
+
+**Adjudicated:** Claude Code's Phase 1 design memo for the F2 NWS gridpoint hourly forecast
+collector. Memo produced with zero files created or edited, as instructed.
+
+**RULED (Architect, in session):**
+1. **Settlement-day keying: `startTime`.** A forecast period keys to the `climate_day` of
+   its `startTime`, never of `generatedAt`/`updateTime`. Conversion chain:
+   `datetime.fromisoformat(period["startTime"])` -- offset preserved, NOT stripped -- passed
+   directly to `core/climate_day.py::climate_day(city, ts)`, which performs the single
+   authoritative UTC conversion internally. Rationale for start over end: keying on `endTime`
+   would mislabel the last forecast hour of EVERY day as belonging to the next day, not
+   only at DST boundaries.
+2. **Table name: `raw_nws_hourly_forecast`;** function
+   `ensure_raw_nws_hourly_forecast(conn)` in `storage/schema.py`. `nws_forecast_snapshots`
+   in `storage/schema.sql` is NOT reused: it is dead DDL of an incompatible shape (no
+   snapshot-hash indirection, no per-period rows, no version column) and reusing the name
+   would invite a future reader to mistake `schema.sql` for the live definition.
+   Confirmed by grep that no `.py` file creates or writes to it.
+3. **Version constant: `PARSER_VERSION`,** not `COLLECTOR_VERSION`. The memo reasoned by
+   analogy to whichever sibling collector the work resembled; that is the wrong axis. The
+   version exists so a change in derivation logic makes old and new rows distinguishable
+   and the correction a migration rather than an overwrite. The derivation in this module
+   that can silently corrupt settlement is the `climate_day` derivation, so the constant
+   binds to that, and the module docstring must say so explicitly.
+4. **Write policy: always snapshot, insert on change.** Every poll snapshots the raw body.
+   Period rows are inserted ONLY when `properties.updateTime` differs from the last stored
+   value for that city. The snapshot provenance index carries the poll-by-poll observation
+   record (one index row per fetch); the parsed table carries one row per
+   (city, forecast vintage, period). The memo offered this as a binary between Kalshi-style
+   always-insert and CLI-style skip-entirely; both were rejected and a third position taken.
+   **Three mandatory conditions:**
+   a. A skip is NEVER silent. Every poll leaves a durable artifact on disk even when zero
+      period rows are written, and the run summary must print
+      `city: unchanged (updateTime=X)` distinctly from `city: stored N periods`. If
+      "we polled phoenix at 14:05 and the forecast was unchanged" cannot be reconstructed
+      from disk afterward, the optimization has cost data.
+   b. `forecast_generated_at` and `forecast_update_time` are stored on every row regardless
+      of the skip logic.
+   c. `updateTime` is now load-bearing for a WRITE decision, which makes an NWS quirk in
+      that field a silent data-loss path. A DECREASE in `updateTime` relative to the last
+      stored value for a city is an anomaly: flag it loudly and insert, never treat it as
+      "unchanged" and skip. The docstring must state that this branch exists and why.
+
+**Isolation and exit codes (accepted as proposed):** isolation per city, mirroring both
+sibling `collect_all` loops. One city's failure does not stop the others. Exit 0 only if
+every attempted city succeeded; 1 if any failed; a skip counts as success. Per-city handlers
+must catch bare `Exception`, NOT narrow to `except NWSError`, because
+`points_json["properties"]["forecastHourly"]` raises a bare `KeyError` that would otherwise
+escape isolation.
+
+**Accepted and explicitly preserved:** the collector computes NO forecast high. Aggregating
+`MAX(temperature)` across a day's periods requires deciding which forecast vintage to trust
+and how to treat days spanning two snapshot times -- both modeling-rung decisions. No
+"helper" column smuggles it in.
+
+### FINDINGS
+- **The memo's central technical claim was correct and sharper than the invariant it
+  serves.** A naive implementation taking the date portion of the DST-local timestamp would
+  misfile periods not merely on the two DST-transition days but in a one-hour-wide window
+  on EVERY day of the DST season. Worked example: a period whose raw `startTime` reads
+  `2026-07-15T00:30:00-04:00` is 04:30 UTC, which under nyc's fixed -5 standard offset is
+  23:30 on July 14 -- `climate_day` 2026-07-14, a full calendar day earlier than the
+  wall-clock date suggests. This is the F-01 failure class, in a new stream.
+- **The design memo gate paid for itself.** It caught the raw-bytes provenance blocker
+  before any collector code existed, and the memo did NOT propose the wrong fix
+  (`json.dumps().encode()`), which was the specific error the gate was constructed to
+  intercept.
+- **Sequencing defect in the original plan, surfaced by the memo's own honesty:** no
+  captured hourly-forecast fixture exists on disk. Phase 2 (implement) and Phase 3 (test on
+  real captured bodies) are therefore not orderable as originally written -- fixture-based
+  tests cannot be written against a body never captured, and capturing one requires a live
+  call the suite forbids. Resolved by re-sequencing onto the M2.T4a/M2.T4b precedent
+  (Decision Log 2026-07-13): scaffold and prerequisites first, parser built against a real
+  captured sample second. The revised gate order is: (1) raw-capture methods [CLOSED],
+  (2) `config.py` lat/lon accessor, (3) live capture for all five cities, (4) compare real
+  bodies against the assumed shape, (5) Architect approval -- then commit fixtures and write
+  the collector.
+- **The entire period-level JSON shape remains UNVERIFIED.** `nws_client.py` never touches
+  `periods`; no fixture exists; the only existing call site is a live uncaptured check in
+  `test_connections.py`. Everything in the proposed schema and every volume estimate is
+  downstream of an assumed shape. The memo flagged this itself, twice, unprompted -- and
+  that flag is the reason the schema is not yet built. Step 4 must compare real captured
+  bodies field-by-field against the assumption and name every discrepancy.
+- **Volume estimates are estimates.** At an assumed ~155 periods per response: ~775 rows
+  per poll across five cities; ~18,600/day hourly, ~37,200/day at 30 minutes,
+  ~74,400/day at 15 minutes. Blob-level dedup does NOT reduce parsed row counts and only
+  fires when two polls land inside one NWS regeneration window. Recompute from real period
+  counts at step 4 before any cadence decision.
+- **`core/config.py` has no lat/lon accessor** though `config.yaml` carries lat/lon for all
+  five cities (grep-confirmed). Adding one touches the module CLAUDE.md names as the single
+  source of truth, so it is gated as its own step with its own test rather than absorbed as
+  a footnote inside a collector build. Related standing sharp edge: `config.yaml` and
+  `core/climate_day.py` each carry an independent city list with no cross-check; a third
+  city-keyed accessor widens that drift surface. A cross-check assertion is worth adding,
+  NOT this session.
+
+### AI PROCESS NOTES (KT Rank 5)
+- The memo's section F ("what I am unsure of") was populated with nine items rather than
+  left empty. An empty uncertainty section would itself have been a finding.
+- Claude Code volunteered, unprompted and twice, that it had NOT opened
+  `Final_Architectural_Review_2026-07-19.md` or `SESSION_HANDOFF_2026-07-20_F01.md` this
+  session, and explicitly declined to claim no prior forecast-collector ruling exists in
+  them. Correct epistemic hygiene. **Still open: those two documents were not read.**
+- The memo presented ruling 4 as a two-option choice. It was a false binary; a third
+  position was available and taken. Worth generalizing: an AI-framed set of alternatives is
+  a hypothesis about the option space, not the option space.
+- Three of the four rulings were presented by the memo as recommendations explicitly
+  deferred to the Architect rather than decided silently. That is the requested behavior
+  and it worked.
+
+## 2026-07-29 — FINDING: a code path with no caller has no test that can fail
+**Type:** Process/verification finding (generalizable; no code or config change)
+**Status:** E4 — AI-drafted, pending Architect ratification (Invariant 3)
+**Session:** Surfaced across six review rounds of the F2 prerequisite build.
+
+**What:** New code written for a consumer that does not exist yet is invisible to a green
+test suite, and the invisibility is structural rather than accidental. This is a distinct
+lesson from the notifier finding, and it is narrower and more actionable.
+
+**The notifier lesson was:** three test layers can mask a bug that only appears under real
+subprocess invocation. **This lesson is:** a path nothing calls cannot fail, so green is not
+weak evidence about it -- it is *zero* evidence about it, and adding the caller and the test
+in separate sessions leaves a window in which green means nothing.
+
+**Evidence:**
+- `get_hourly_forecast_raw` was written for the F2 collector, which does not exist. Its
+  first draft was reported with what appeared to be a truncated 6-field constructor call.
+  Such a call PARSES (trailing comma and blank line inside parentheses are legal Python)
+  and fails only at call time. No test called the method. **A green suite was therefore
+  exactly what would have been observed whether the defect was real or not.** The suite
+  result discriminated a sibling anomaly (a stray colon, a real `SyntaxError`) and was
+  incapable of discriminating this one.
+- `NWSClient` itself had been in this state for weeks: referenced in three handoff documents
+  as "already has the methods," with no production consumer and only a one-shot connectivity
+  check as a caller. The repo now has two nested instances of the pattern -- an untested
+  method inside an unexercised class.
+- First test round added 3 tests, all for `_get_raw`, and ZERO for the two public methods
+  the change existed to provide. The omission was not noticed by Claude Code and was not
+  specified by the Architect's prompt. It took a review round to surface.
+
+**Consequence / remediation:** coverage was closed before authorizing the next step rather
+than after -- 11 tests including the six-field unpack by name, call ordering, semantic
+rounding on the wire, the bare-`KeyError` path, all three `_get_raw` failure modes, and the
+cache bypass by call count. Standing rule adopted: when a change adds a method for a
+consumer that does not yet exist, tests for that method are part of the same step, never
+deferred to the step that adds the consumer.
+
+### FINDINGS
+- **The sharper, reusable form of this finding: a paragraph explaining why a behavior
+  matters is the signal that behavior needs an assertion.** This was the finding THREE
+  separate times in one session, and each time the prose was correct and nothing enforced
+  it:
+  1. The false-provenance rationale (`json.dumps` is not the served bytes) lived only in a
+     comment. A future "simplification" of `_get_raw` back to returning parsed JSON would
+     have gone red nowhere. Fixed by asserting `sha256(raw) != sha256(reserialized)`.
+  2. The coordinate rounding became semantic (it determines which grid is fetched) and was
+     documented but untested. Fixed by asserting four decimals reach the wire.
+  3. The cache bypass -- fourteen lines of correct docstring explaining that reusing the
+     cache would snapshot stale bytes stamped with a fetch time those bytes never had -- had
+     no test at all. Fixed by asserting two identical calls produce two HTTP fetches.
+  **Comments do not fail. Docstrings do not fail. Only assertions fail.** Where a rationale
+  is load-bearing, the rationale must be executable.
+- The two hardened assertions are worth noting for their construction, not just existence.
+  The provenance test initially rested on whitespace divergence alone -- and Python dicts
+  preserve insertion order while `json.dumps` does not sort by default, so key order would
+  never have differed, contrary to the test's own comment. Whitespace alone is defeatable by
+  someone "fixing" the comparison with `separators=(',',':')`. A non-ASCII value was added,
+  because `ensure_ascii` escaping cannot be normalized away. **A guard that can be defeated
+  by a plausible future edit is not yet a guard.**
+- Corollary on the mock/real boundary, carried forward as F-NWS-5: all coverage is
+  `MagicMock`-based, so the real `requests.Response` surface is still untouched. The live
+  capture step is the real-invocation test and must route through the new methods.
+
+### AI PROCESS NOTES (KT Rank 5)
+- The coverage gap was jointly produced: the Architect's prompt specified one test
+  (Amendment 1) and did not specify coverage for the methods being added around it; Claude
+  Code delivered exactly what was specified and did not notice the omission. Neither party
+  caught it at the time. A prompt that names one required test implicitly invites treating
+  that test as sufficient -- worth guarding against in future prompts by asking "what does
+  this change make callable, and is each of those things called by a test?"
+- Green-suite counts this session: 83 -> 86 -> 94 -> 96. Every increment was reported as
+  proof of correctness. Only the 94 -> 96 increment (the cache-bypass and trailing-zero
+  tests) was specifically constructed so that it COULD fail against a plausible regression.
+
+## 2026-07-29 — FINDING: a rendered diff is not an artifact (review-channel lossiness)
+**Type:** Process finding + working-discipline change (no code or config change)
+**Status:** E4 — AI-drafted, pending Architect ratification (Invariant 3)
+**Session:** Surfaced three times across six review rounds of the F2 prerequisite build.
+
+**What:** The existing guardrail "read the artifact, never assert from memory; print, do not
+summarize" already covered one failure direction -- a real defect hidden by a summary. This
+session found the INVERSE direction: **a phantom defect manufactured by a lossy render.**
+Three times, the planning/review partner raised a defect that did not exist on disk.
+
+**Evidence (all three cleared by the Architect's own terminal, in seconds):**
+1. `get_hourly_forecast_raw`'s `return HourlyForecastRaw(...)` appeared to pass 3 of 6
+   required fields. `inspect.getsource` showed all six present.
+2. `get_points_raw`'s Amendment 3 docstring appeared to collapse "within one scheduled run
+   (one process, one poll per city) the cache" into "within on". `inspect.getsource` showed
+   the sentence whole.
+3. A later round showed `class PointsRaw(NamedTuple):` missing its header line, an
+   undefined `fake_get`, an unterminated docstring, and a missing `import hashlib` -- every
+   one of which would have produced a `SyntaxError`, `NameError`, or failing test. The suite
+   was green and `PointsRaw` was importable by name, so all four were artifacts.
+
+**Root cause, and it is NOT Claude Code refusing to print.** Claude Code ran the reads and
+prints as instructed. Its interface collapses tool output into single lines
+(`Read 1 file`, `Ran 1 shell command`), so what reaches a review channel by copy-paste
+contains the FACT of the print and none of its content. Five consecutive rounds of
+"print verbatim, do not summarize" did not survive the channel. Meanwhile every command run
+directly in Git Bash arrived intact and settled each question immediately.
+
+**Working-discipline change adopted (the actual remediation, and it sits on the Architect's
+side, not the AI's):** proposed one-line addition to `CLAUDE.md`, for Architect ratification:
+
+> Claude Code's printed output does not survive copy-paste into a review channel.
+> Verification claims are E4 testimony regardless of how they are formatted. The Architect
+> confirms from his own terminal -- `inspect.getsource(...)` for functions, `cat` for whole
+> files -- before accepting any claim about disk state.
+
+**`inspect.getsource` over `cat` for functions, and the reason matters:** it prints what
+Python actually PARSED, not what a renderer drew, so it survives the copy-paste channel that
+demonstrably eats diffs. Adopted as the standing verification idiom for this repo.
+
+### FINDINGS
+- **A green suite discriminates SOME render artifacts and not others, and the distinction is
+  precise enough to use.** Anything that would break parsing or fail a test (missing class
+  header, undefined name, unterminated string, dropped import, stray colon) is cleared by a
+  passing suite. Two classes are NOT cleared: (1) code that parses but fails only at call
+  time on a path no test exercises -- e.g. a truncated constructor call; (2) **docstring
+  content**, which passes every test regardless of whether it is mangled. Verification
+  requests should therefore be narrowed to those two classes rather than demanding
+  whole-file prints every round.
+- **Named review-partner error (KT Rank 5, chat partner's own):** the first anomaly was
+  raised with "Stop here" and "two things are wrong on their face" while the actual evidence
+  was a rendered diff. The hedge and the settling command were both supplied, but the
+  framing was stronger than the evidence supported. Asserting a defect from a render is the
+  same category of error as asserting from memory. One full round trip was spent on it.
+- **Named review-partner error #2:** the diagnostic one-liner supplied for the coordinate
+  check was itself broken -- single-quoted for bash with `\"` escapes inside an f-string,
+  which Python read as a line continuation. It failed on first run. A command handed over
+  for the Architect to run is an artifact too, and it was not tested before delivery. This
+  is adjacent to the known failure mode about command blocks with unresolved placeholders.
+- The verbatim-print instruction is still correct and should stay in force; it is simply
+  insufficient on its own, because compliance with it is not observable through this channel.
+
+### AI PROCESS NOTES (KT Rank 5)
+- Total review rounds on a step originally scoped as "add a raw-capturing method": six.
+  Three of them turned wholly or partly on render lossiness rather than on code.
+- Two memory entries were written by Claude Code at session end for continuity, both
+  explicitly flagged as pointers to re-verify from disk rather than facts to trust: the
+  verbatim/`inspect.getsource` discipline, and the F2 gate structure with its four ratified
+  rulings. Per Invariant 3 and the standing disk-wins rule, next session must re-verify
+  HEAD == origin, suite green, and the three raw methods present via `inspect.getsource`
+  before relying on any of it.
+- Session ended deliberately at step 1 rather than continuing into step 2, per one-task-
+  per-session. Prior sessions' clustered mistakes at the end of long sessions were the
+  stated reason.
