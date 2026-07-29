@@ -717,7 +717,7 @@ collector (F2, [IRR]), collection_runs audit rows, auto-backup remediation.
 
 ## 2026-07-29 — F2 PREREQUISITE: NWSClient raw-capture methods (provenance-correct byte capture)
 **Type:** Client-layer addition + test suite (F2 blocker, additive only)
-**Status:** E4 — AI-drafted and AI-executed under Architect approval, pending ratification (Invariant 3)
+**Status:** E3 — Ratified by Architect 2026-07-29 (Invariant 3)
 **Session:** Claude Code session, planning/review partner in chat. Scoped as step 1 of a
 five-step gated F2 build (see companion entry, design rulings). Six review rounds.
 **Push status:** Committed `38afc5a` and pushed 2026-07-29. Pipeline origin/main
@@ -833,7 +833,7 @@ accepted as AI testimony.
 
 ## 2026-07-29 — F2 DESIGN RULINGS: settlement-day keying, table name, version constant, write policy
 **Type:** Architect rulings on an E4 design memo (pre-implementation gate)
-**Status:** E4 as a RECORD — AI-drafted entry, pending Architect ratification (Invariant 3).
+**Status:** E3 — Ratified by Architect 2026-07-29 (Invariant 3)
 The four rulings below were made BY the Architect in session; this entry is the unratified
 transcription of them, not the authority for them.
 **Session:** Same session as the F2 prerequisite entry. Implementation was gated behind a
@@ -950,7 +950,7 @@ and how to treat days spanning two snapshot times -- both modeling-rung decision
 
 ## 2026-07-29 — FINDING: a code path with no caller has no test that can fail
 **Type:** Process/verification finding (generalizable; no code or config change)
-**Status:** E4 — AI-drafted, pending Architect ratification (Invariant 3)
+**Status:** E3 — Ratified by Architect 2026-07-29 (Invariant 3)
 **Session:** Surfaced across six review rounds of the F2 prerequisite build.
 
 **What:** New code written for a consumer that does not exist yet is invisible to a green
@@ -1024,7 +1024,7 @@ deferred to the step that adds the consumer.
 
 ## 2026-07-29 — FINDING: a rendered diff is not an artifact (review-channel lossiness)
 **Type:** Process finding + working-discipline change (no code or config change)
-**Status:** E4 — AI-drafted, pending Architect ratification (Invariant 3)
+**Status:** E3 — Ratified by Architect 2026-07-29 (Invariant 3)
 **Session:** Surfaced three times across six review rounds of the F2 prerequisite build.
 
 **What:** The existing guardrail "read the artifact, never assert from memory; print, do not
