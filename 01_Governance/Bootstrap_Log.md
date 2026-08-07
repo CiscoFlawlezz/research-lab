@@ -1096,3 +1096,472 @@ demonstrably eats diffs. Adopted as the standing verification idiom for this rep
 - Session ended deliberately at step 1 rather than continuing into step 2, per one-task-
   per-session. Prior sessions' clustered mistakes at the end of long sessions were the
   stated reason.
+
+## 2026-08-04 — FILESYSTEM ACCESS: research-lab-files MCP connector established (Windows 8.3 path requirement)
+**Type:** Tooling / review-channel infrastructure (no pipeline code, no DB, no repo commit)
+**Status:** E3 — Ratified by Architect 2026-08-04 (Invariant 3)
+**Session:** Post-break session, 2026-08-04. No pipeline work performed; setup, correction, and governance only.
+
+**Task:** Give the chat-side planning/review partner live read access to both trees, to
+close the review-channel lossiness documented in the 2026-07-29 rendered-diff entry.
+
+**Built:** `research-lab-files` filesystem MCP server registered in
+`C:\Users\rjkir\AppData\Roaming\Claude\claude_desktop_config.json`, exposing exactly two
+directories: `C:\Projects\weather-pipeline` and `C:\Users\rjkir\Obsidian\Research Lab`.
+Read-only by standing instruction, not by server capability -- the server ships write tools;
+the restriction is enforced in the project Instructions, not in the config. Pre-existing
+config keys (`coworkUserFilesPath`, `preferences`) were preserved through a merge, verified
+by key count (11 preference keys before and after). A `.bak` of the original 1204-byte config
+was taken before any edit.
+
+**Standing rules written into project Instructions:** read-only, never write; **never read
+`data/pipeline.db`** (live WAL database, schedulers writing every five minutes, a raw file
+read risks a torn view missing committed rows in the `-wal` file -- the same reasoning that
+makes `scripts/backup_db.py` use `VACUUM INTO` rather than a file copy); never read
+`secrets.yaml`; and a file read is better evidence than a pasted diff but is **still AI
+testimony** -- reading a file does not advance any claim about it to E3.
+
+**Also done:** the two GitHub repo context cards (`CiscoFlawlezz/research-lab`,
+`CiscoFlawlezz/weather-pipeline`, 26% of project capacity) were removed from the Claude
+project. They provided a *last-pushed* view that would now sit alongside a *disk* view with
+nothing in a response indicating which was read. That ambiguity is worse than either source
+alone.
+
+### FINDINGS
+- **A local MCP server's `command` value on this machine must contain no spaces; use the 8.3
+  short path.** Claude Desktop wraps the configured command as
+  `cmd.exe /c <command> <args>`, and `cmd` splits the string at the first unquoted space.
+  `"command": "npx"` resolved to `C:\Program Files\nodejs\npx`, so `cmd` attempted to execute
+  `C:\Program` and the server died immediately on every launch. Working value:
+  `C:\PROGRA~1\nodejs\npx.cmd`. Obtain it with, in `cmd.exe`:
+  `for %I in ("C:\Program Files\nodejs\npx.cmd") do @echo %~sI`
+  Note the asymmetry that masks this: **arguments** may contain spaces safely (the vault path
+  `...\Obsidian\Research Lab` is passed as its own array element and works untouched); only
+  the **command** value is split. This is the inverse of the Git Bash quoting rule already in
+  use for that same path.
+- **The failure was invisible to interactive testing.** Running
+  `npx -y @modelcontextprotocol/server-filesystem "C:\Projects\weather-pipeline" "C:\Users\rjkir\Obsidian\Research Lab"`
+  by hand in `cmd.exe` succeeded and printed `Secure MCP Filesystem Server running on stdio`,
+  because an interactive prompt resolves `npx` through PATHEXT to `npx.cmd` and handles the
+  space. A manual success therefore proved nothing about the app's spawn path. Same category
+  as the standing lesson that scheduler registration is not execution: *the mechanism that
+  works by hand is not the mechanism the system uses.*
+- **The Developer-pane status label is not a verification criterion.** The MCP server log
+  printed `Server started and connected successfully` on three separate occasions
+  **immediately before** the process died with the `'C:\Program'` error. The verification
+  standard is the log showing (a) the allowed directories echoed back by the server, and
+  (b) a completed `tools/list` request-and-result exchange. Both appeared at `16:36:39` on
+  the successful launch. This is the notifier lesson again in a new stream: a green status is
+  not device delivery.
+- **The connector is a DEFERRED tool and this creates a live false-negative risk.** It does
+  not load into context automatically; it is discoverable only via `tool_search`. On two
+  occasions in this session Claude asserted the connector was absent and that the paths were
+  unreachable -- once falling back to "the indexed project files are snapshots, so I cannot
+  answer," which is the exact stale-snapshot failure the connector was installed to end. On
+  the second occasion Claude searched of its own accord, found the connector, and named the
+  error. **The reflex fired; it was not forced.** The project Instructions now require
+  `tool_search` before any claim that filesystem access is absent. Absence of a tool is a
+  claim about state and is subject to the same verify-before-asserting rule as any other.
+
+### AI PROCESS NOTES (KT Rank 5)
+- **Named review-partner error (chat partner's own, KT Rank 5):** the first proposed fix was
+  to replace `"command": "npx"` with the full path `C:\Program Files\nodejs\npx.cmd`. This
+  was WRONG and failed identically. It **moved** the space rather than removing it; `cmd`
+  split at `C:\Program` exactly as before. The misdiagnosis was "npx is not being resolved"
+  when the actual mechanism was "the command string is split at its first space." The log
+  message named the mechanism correctly from the first failure -- `'C:\Program' is not
+  recognized`, not `'npx' is not recognized` -- and was read past. Lesson: the error string
+  was more specific than the hypothesis, and the hypothesis won anyway.
+- Diagnosis was run before any change was applied, deliberately, so that a fix that worked
+  could be attributed. This paid off: the first fix did not work, and because nothing else had
+  been changed alongside it, that was unambiguous rather than confounded.
+- Verification of the merged config was by content, not by parse: `HAS SPACE: False`,
+  `EXISTS: True` (from `os.path.exists`), and `PREFS KEYS: 11`. Valid JSON alone would not
+  have caught a dropped preferences block or a non-existent command path.
+
+## 2026-08-04 — CORRECTION: tests/test_nws_client.py holds 13 tests, not 11 (supersedes a figure in a ratified entry)
+**Type:** Correction to canon (append-only; supersedes, does not edit)
+**Status:** E3 — Ratified by Architect 2026-08-04 (Invariant 3)
+**Session:** 2026-08-04, during verification of the newly established filesystem connector.
+
+**Correction.** The ratified entry `2026-07-29 — FINDING: a code path with no caller has no
+test that can fail` states, under *Consequence / remediation*, that coverage was closed with
+**11 tests**. That figure is wrong. The correct figure is **13**.
+
+**Handled per append-only discipline (corrections are new rows under a bumped version, never
+UPDATE, never DELETE).** The 2026-07-29 entry is ratified canon and is NOT edited. This entry
+supersedes the figure. Any future read of that entry's test count should resolve to this
+correction -- which is the same read-authority problem the open ADR covers for
+`parser_version` collisions in the DB, now appearing in the governance log itself.
+
+**Evidence, from the Architect's own terminal 2026-08-04:**
+
+13 defined, 13 collected. The two counts agree, so there are no defined-but-uncollected
+tests; the correction is purely to the recorded number, not to what runs.
+
+**Provenance of the error.** The figure 11 originated from two sources, both of which this
+same session's ratified rendered-diff finding classifies as untrustworthy: (a) counting test
+functions off a copy-pasted render of the file, and (b) Claude Code's own summary claim of
+"all 11 pass." Neither was ever checked against the suite, and the number then propagated
+through several turns of review and into a ratified log entry.
+
+### FINDINGS
+- **A number read off a render is render evidence and loses to disk, exactly as a code
+  fragment does.** The 2026-07-29 rendered-diff finding was framed around *code* mangled in
+  transit. It generalizes to any datum extracted from that channel, including counts,
+  timestamps, and file sizes -- categories that look like facts rather than like renders and
+  therefore attract less suspicion.
+- **The error nearly propagated into a second, worse use.** The figure 11 was about to be used
+  as the *expected value* for verifying that the new filesystem connector was reading live
+  disk ("if it reports 11 tests, access is live"). Had disk happened to agree, an unverified
+  number would have been used to certify a new capability. The check passed only because disk
+  was consulted directly and the discrepancy surfaced. **A verification criterion sourced
+  from unverified evidence is not a verification criterion.**
+- **This is the first correction to ratified canon in the log.** The mechanism used here (new
+  superseding entry, original untouched) should be treated as the standing pattern, and it
+  argues for the open read-authority ADR being written to cover documents as well as DB rows:
+  the log now contains two entries with different values for the same fact, and the selection
+  rule lives only in this sentence.
+
+### AI PROCESS NOTES (KT Rank 5)
+- The error is the chat partner's, named explicitly: the count was asserted repeatedly across
+  turns without ever being checked, in a session whose central finding was that this exact
+  evidence class cannot be trusted. Holding a discipline and applying it to one's own inputs
+  are separate acts.
+- The correction cost one command and was surfaced only because the connector verification
+  happened to target that file. Nothing systematic caught it.
+
+## 2026-08-04 — F2 GATE REVIEW: Final_Architectural_Review §15/§16 read against the four ratified rulings
+**Type:** Governance review (closes a standing open item; no code, no DB, no commit)
+**Status:** E3 — Ratified by Architect 2026-08-04 (Invariant 3)
+**Session:** 2026-08-04. First substantive use of the research-lab-files connector.
+
+**Open item closed.** The 2026-07-29 design-rulings entry recorded, under AI PROCESS NOTES,
+that `Final_Architectural_Review_2026-07-19.md` had **not** been read and that no claim was
+being made about whether it contained a prior forecast-collector constraint. §15 and §16 have
+now been read.
+
+**Headline: no contradiction.** Nothing in §15 or §16 contradicts any of the four ratified F2
+rulings. §15.5 affirmatively endorses the build and its scope choice (start with NWS gridpoint
+hourly, NBM later). The rulings stand as ratified. What the review adds is a set of constraints
+the rulings are **silent** on, plus one genuine tension.
+
+**EVIDENCE STATUS -- read before acting on anything below.** This is a single AI file read,
+which is better evidence than a pasted diff but is still AI testimony; it does not make any
+claim below E3. The source document's own frontmatter classifies it as E4 pending ratification,
+and its §15 resolution block classifies itself as E4 and explicitly invites verification
+against commit `fa0a99f` and the snapshot store. **The claim that exactly 8 v1 summary rows
+remain unmigrated is a DB-state claim that was not and cannot be verified by a file read** --
+it requires the Architect running a query. Treat every specific figure and section number
+below as pending independent confirmation.
+
+**Bearing on Ruling 1 (key on `startTime`) -- not constrained; indirectly reinforced.**
+§16's F3 note warns that the PDFs should be read first because one interpretation touches
+`climate_day`, i.e. `climate_day` semantics for MIA/AUS may still change. `startTime` is a raw
+vendor field, so keying on it is immune to that; the exposure lands entirely on the derivation,
+which is exactly where Ruling 3 already binds the version. The raw/derived separation holds
+under this pressure.
+
+**Bearing on Ruling 2 (`raw_nws_hourly_forecast`) -- two items, both new.**
+1. *Legacy name collision, and it may be a prerequisite rather than a someday item.* §4
+   weakness #10 records that dead `storage/schema.sql` already defines an
+   `nws_forecast_snapshots` table no live code creates; §16 prescribes retiring `schema.sql`
+   into `archive/` with a header. Shipping `raw_nws_hourly_forecast` while a stale,
+   differently-named forecast table sits in an unretired schema file produces precisely the
+   reader confusion §4 already flags. The retirement is cheap. **Candidate for insertion
+   before F2 Step 2.**
+2. *The ruling names a table, not a database file.* §16 opens with "split `market.db` from
+   `pipeline.db`." Hourly gridpoint forecast is a high-cadence, high-volume stream whose growth
+   profile resembles Kalshi order books more than CLI truth. **Which database file
+   `raw_nws_hourly_forecast` lives in is an open question none of the four rulings answer, and
+   it is far cheaper to answer before the table is populated than after.**
+
+**Bearing on Ruling 3 (`PARSER_VERSION` bound to the climate_day derivation) -- design
+validated; a read-side hazard surfaced.** §16's F3 11am-ET interpretation is a foreseeable,
+not hypothetical, trigger for a version bump, which validates binding the constant to the
+derivation. **The hazard:** the system will then have *two independent climate_day derivations*
+-- the CLI parser's covered-day-from-header (parser v2, commit `fa0a99f`) and F2's
+`startTime`-based one -- which must agree on identical key semantics or every forecast-to-truth
+join silently mis-registers. Per §15's resolution block, `raw_nws_cli` currently holds 8
+mis-keyed v1 summary rows whose v2 corrections **do not yet exist**; the migration is
+authorized-pending, not executed. F2 will therefore begin producing rows keyed on a semantic
+the CLI table does not yet uniformly satisfy. **This makes the open read-authority ADR a
+blocker for any F2-to-CLI join -- though not for F2 collection itself.**
+
+**Bearing on Ruling 4 (always-snapshot, insert on `updateTime` change) -- the real tension.**
+- *Supported* by §4 #13: `/latest`-only fetching misses interstitial products. The gridpoint
+  hourly endpoint has no listable history and returns current state only, so always-snapshot is
+  the correct structural answer to that defect class, not redundancy.
+- *Stressed* by §16's "gzip snapshot blobs." ~156 periods of JSON per call, and NWS mutates
+  `updateTime`/`generatedAt` on nearly every response, so hash-level dedup will almost never
+  fire. Unconditional snapshotting becomes the largest single blob-growth decision in the
+  project. The ruling is defensible on irreversibility grounds, but §16 argues the compression
+  mitigation should land **alongside** it, not later.
+- *Mechanism challenged* by §15.7: replace check-then-insert dedup with a DB-level unique index
+  plus `INSERT OR IGNORE`. "Insert only when `updateTime` changes" **is** a check-then-insert
+  pattern, and §4 #9 flags that shape as race-prone across retry paths and overlapping
+  scheduled runs. A unique index on approximately `(location, start_time, update_time)` would
+  enforce the ruling's intent at the DB layer rather than in application logic -- **same
+  policy, stronger guarantee.** This does not contradict Ruling 4; it proposes a better
+  implementation of it.
+- *Prerequisite* per §15.6: always-snapshot at poll cadence adds a writer to a database that
+  still has no `busy_timeout`. `PRAGMA busy_timeout=15000` is a prerequisite, not a nicety.
+  Related: the snapshot store commits on its own connection, so always-snapshot plus
+  conditional row insert is inherently **two transactions**. In the no-change case, a snapshot
+  with no row is the intended state -- which is fine, but §4 #4's lesson applies: document that
+  honestly rather than repeating the false-atomicity docstring pattern.
+
+**Bearing on F2 that no ruling covers.**
+- **§15.3 -- `collection_runs` rows.** F2 will be the fourth stream with no gap-audit coverage.
+  Emitting run rows from the collector's first commit is cheaper than retrofitting, and §16
+  makes the completeness report one of only two Plane 3 launch artifacts. **See also the
+  downtime-accounting entry below: run rows are the mechanism that distinguishes intended
+  downtime from collector failure.**
+- **§15.5 says "and schedule it,"** which under §15.4 implies Password logon type, ntfy.sh on
+  the failure path, and PowerShell rather than `wmic`/`timeout` in the wrapper. The
+  notification layer is already built and device-verified, so this is wiring, not building.
+  **Note: scheduling remains explicitly out of scope until the collector runs clean manually
+  and the Architect approves.**
+- **§16's fixture precedent** -- commit real captured gridpoint bodies as test fixtures --
+  independently confirms the Step 3/4 sequencing already adopted from the M2.T4a/M2.T4b
+  precedent.
+
+### FINDINGS
+- **The four rulings survive the review intact, and that is the primary result.** The purpose of
+  reading §15/§16 was to find a prior constraint that might contradict ratified canon. None
+  exists. The rulings were made without this document and are consistent with it.
+- **The rulings' silences are where the risk lives, not their content.** Three unanswered
+  questions now have names: which DB file the table belongs in; whether `schema.sql` retirement
+  precedes Step 2; and whether the write gate is enforced in application logic or by a unique
+  index. All three are cheaper to decide before the table exists.
+- **`busy_timeout` moves category.** It was on the deferred list. §15.6 makes it a prerequisite
+  for adding a poll-cadence writer, which F2 is. **Recommend moving it off deferred and in
+  front of F2 Step 3.**
+- **The read-authority ADR is now blocking something concrete**, rather than being a tidy-up
+  item: it gates any F2-to-CLI join, because the two climate_day derivations will coexist before
+  the CLI v1/v2 migration is executed.
+- **This item sat open for six days and closed in one file read.** It was flagged twice,
+  unprompted, by Claude Code on 2026-07-29 as unread, and the flag was correctly carried forward
+  rather than dropped. The cost of leaving it open was the possibility of building Steps 2-5 on
+  rulings that contradicted prior canon.
+
+### AI PROCESS NOTES (KT Rank 5)
+- This entry is derived from **one** AI read of one document. It has not been independently
+  confirmed by the Architect, and the section numbers, the `fa0a99f` reference, and the 8-row
+  figure are all reported rather than verified. The connector makes reads cheap; it does not
+  make them E3.
+- The review was requested specifically as the connector's first real task, so that the new
+  capability was exercised on work that mattered rather than on a synthetic check. It
+  simultaneously closed a standing governance item and demonstrated the tool.
+- No action was taken on any finding above. All of it is queued for Architect decision. Reading
+  a review is not adopting its recommendations.
+
+## 2026-08-04 — SUPERSEDING: the wake/hibernate investigation is closed; long gaps are intended Architect downtime
+**Type:** Correction to a standing open item (append-only; supersedes, does not edit)
+**Status:** E3 — Ratified by Architect 2026-08-04 (Invariant 3)
+**Session:** 2026-08-04. Architect statement of operating practice; no code, no DB, no commit.
+
+**Correction, stated by the Architect.** The machine is **sometimes shut down manually and
+deliberately**. Extended periods with no collection are, in those cases, the expected
+consequence of an operating decision, not a symptom of a defect. Power configuration is
+correct; there is no hardware or settings question outstanding.
+
+**What this supersedes.** Prior entries carry the wake/hibernate finding as **INCONCLUSIVE,
+pending a forward-verification window** -- specifically, that `powercfg /change
+hibernate-timeout-ac 0` was applied and confirmed reading `0x00000000`, but that two gaps
+appeared in the post-fix observation window and sleep/wake event timestamps were never
+correlated against the time the fix was applied. **That framing is retired.** It implies a live
+technical question awaiting evidence. The correct status is: *gaps coinciding with
+Architect-initiated downtime are expected behavior and require no investigation.* Prior entries
+are ratified canon and are NOT edited; this entry supersedes their status.
+
+**What this does NOT retire.** Three things survive the reframe and must not be swept up with
+it:
+1. **The 43h02m historical loss remains a real, recorded loss.** Reclassifying the cause does
+   not un-lose the data. The `[IRR]` character of missed collection windows is unchanged.
+2. **The sub-hour dropout pattern is untouched and is now the only unexplained continuity
+   finding.** Some hour buckets show ~408-420 rows where full hours show 720 at the same
+   60-ticker denominator. Downtime explains missing **hours**; it cannot explain a **partial**
+   hour, because the machine was up and the collector was firing throughout. This finding was
+   partially obscured by the hibernate hypothesis and is now isolated.
+3. **The rows-per-ticker anomaly** (within-run row counts varying against a flat or falling
+   distinct-ticker denominator; partial-hour-truncation hypothesis probably right but never
+   confirmed) is unaffected.
+
+### FINDINGS
+- **A gap in the data is not self-describing.** The same absence of rows is produced by a
+  hibernate defect and by the Architect pressing shut down, and nothing in the DB distinguishes
+  them. Roughly six days of investigation-shaped attention went to a mechanism question that a
+  single sentence of operating context dissolved. **The instrument records that collection did
+  not happen; it does not record why, and it currently has no field that could.**
+- **This is the strongest concrete argument yet for §15.3's `collection_runs` rows.** A run
+  table distinguishes "the collector ran and stored nothing" from "the collector never ran"
+  from "the machine was off." Without it, every gap is ambiguous and every gap investigation
+  starts from zero. The §15/§16 review already recommended emitting run rows from F2's first
+  commit; this entry independently strengthens that to a general instrument-correctness
+  requirement, not merely an F2 nicety.
+- **Downtime is now a known, deliberate, and unrecorded input to the corpus.** For a V1
+  measurement instrument, an operating practice that produces data gaps is a property of the
+  instrument and should be *recorded* rather than *inferred* -- ideally as an Architect-logged
+  downtime window, so that a future completeness report can classify a gap as intended rather
+  than flagging it. This is a design question, not an action item, and it is raised here rather
+  than decided.
+- **The ntfy notification layer has a stated blind spot, which is correct but must not be
+  forgotten.** It fires on wrapper failure. It cannot fire when the machine is off. "No
+  notification received" therefore means "nothing to report **while the machine was up**." That
+  is acceptable and expected under this operating practice; it is written down here so it is
+  never mistaken for full coverage.
+
+### AI PROCESS NOTES (KT Rank 5)
+- **Named review-partner error (chat partner's own, KT Rank 5):** the hibernate hypothesis was
+  carried forward across this entire session and used to argue that a continuity check was the
+  highest-priority irreversible next task, on the reasoning that the break window was "the
+  >60-minute idle window the forward-verification needed." That framing was wrong, and it was
+  wrong because a premise about the Architect's own operating practice was never asked about.
+  The correct question -- *was the machine off on purpose?* -- is cheaper than any evidence
+  the proposed investigation would have produced.
+- **Generalizable:** before proposing an investigation into a system's behavior, establish
+  whether the behavior is being caused deliberately by the operator. AI review partners have no
+  visibility into operator intent and will default to treating an anomaly as a defect. This is
+  the mirror image of the confabulation failure mode -- not inventing an artifact that does not
+  exist, but inventing a *problem* that does not exist.
+- The correction cost one sentence from the Architect and retired a multi-session open item.
+
+## 2026-08-06 — TASK 1 COMPLETE: storage/schema.sql retired to archive/ (§16); a header-only near-miss and two review-partner verification errors
+**Type:** Instrument hygiene + process finding (code move + one ratified-doc edit; one commit, pushed)
+**Status:** E3 — Ratified by Architect 2026-08-06 (Invariant 3)
+**Session:** 2026-08-06. Executed via Claude Code (manual-approval mode) after two failed hand-paste attempts; chat-side Claude as planning/review partner.
+
+**Task.** Retire the dead DDL file `storage/schema.sql` into `archive/` per
+`Final_Architectural_Review_2026-07-19.md` §16 and §4 weakness #10. The file creates
+nothing at runtime: nothing in the tree imports, opens, or executes it (verified by grep
+across the full tree before the move); `storage/schema.py` is the live schema authority;
+its `PRAGMA journal_mode = WAL` has never executed (WAL is set per-connection by
+`SnapshotStore._connect()`). Six tables are defined in it — `collection_runs`,
+`nws_forecast_snapshots`, `nws_observations`, `kalshi_markets`, `kalshi_candlesticks`,
+`kalshi_settlements` — and an Architect query (2026-08-05) confirmed none exists in
+`data/pipeline.db`, which holds exactly `kalshi_observations`, `raw_nws_cli`,
+`snapshot_blob`, `snapshot_index`, `sqlite_sequence`.
+
+**What landed.** Commit `8a0a28c` (pushed to origin/main):
+- `git mv storage/schema.sql archive/schema.sql` — a true rename; git recorded
+  `{storage => archive}/schema.sql`, all six `CREATE TABLE` statements and the single real
+  PRAGMA preserved in the body, zero DDL deletions.
+- An E4 retirement header prepended to the archived file, stating: creates nothing;
+  `schema.py` is sole authority; do not add tables here; the line-1 PRAGMA has never
+  executed and WAL is set at runtime by `SnapshotStore._connect()`; a dated DB-state block
+  listing the five live tables; and a forward-pointer noting `collection_runs` is the
+  starting DDL for the Task 4 run-audit table (§15.3, review:207).
+- `CLAUDE.md` line 63 edited **in place, by the Architect by hand** (current-state
+  governance document, corrected in place — not a superseding entry), replacing the
+  `storage/schema.sql` module-layout bullet with an `archive/schema.sql — retired` bullet.
+  Staged and committed in the same change so no ratified doc ever described a state the
+  move had falsified.
+
+**Explicitly out of scope, recorded not fixed** (Architect to schedule separately):
+- False-storage-docstring task: `backup_db.py:6` (cites "schema.sql line 1" as the reason
+  for WAL — now doubly stale: wrong path, and the PRAGMA never executes from that file at
+  all, so only a substantive rewrite is correct), `storage/schema.py:53` and
+  `collectors/kalshi_observation_collector.py:134` (both assert market metadata "lives in
+  `kalshi_markets`" — a table confirmed absent; the metadata lives only in the raw snapshot).
+- `Bootstrap_Log.md:329` carries the same false WAL causal claim; correction is a
+  superseding entry (append-only), never an edit.
+- Untouched by design: `README.md`, both `SESSION_HANDOFF` files,
+  `Repository_Manifest.txt`, `Final_Architectural_Review_2026-07-19.md`.
+
+### FINDINGS
+- **A header-only near-miss was caught before it committed, and append-only is why recovery
+  was free.** At one point `archive/schema.sql` was staged with the retirement header and
+  **none of the six CREATE TABLE statements** — a delete-plus-header-add masquerading as a
+  move, net −61 lines, carrying a stray `Status: E3 — Architect ratified` header from some
+  earlier partial write. Had it committed, the archived file would have contradicted its own
+  header ("the tables defined below…") and misrepresented what it preserved. It was caught
+  because the rebuild verified `grep -c 'CREATE TABLE'` against the pristine
+  `HEAD:storage/schema.sql` rather than trusting the staged file. Recovery was
+  `git reset` + `git checkout -- storage/schema.sql` + `rm -rf archive`, returning to a clean
+  `38afc5a` — and it cost nothing **because `git mv` and the append-only discipline meant the
+  full DDL lived in history the entire time.** The safety net was structural, not lucky.
+- **The redo added a per-step content guard that the first attempt lacked.** `CREATE TABLE`
+  count must equal 6 (proves the DDL survived the header prepend) and the real PRAGMA
+  statement must still be present exactly once in the body (proves no duplication). These are
+  content assertions on the artifact, not a summary of it — the same principle as
+  "only assertions fail."
+- **Claude Code stopped on every mismatch rather than proceeding on judgment.** On both the
+  header-only discrepancy and the PRAGMA-count deviation, it printed the actual line numbers
+  and handed the decision back rather than silently reconciling. This is print-don't-summarize
+  and hard-stop-before-git working as designed, executed by the implementation agent without
+  being separately instructed each time.
+- **The tool switch itself was the fix for the failure that recurred by hand.** Two hand-paste
+  attempts failed identically: a long commit message pasted into `git commit -F -` without a
+  preceding newline was interpreted line-by-line as bash (`command not found` flood; no damage,
+  nothing committed). Moving execution to Claude Code — which writes header and message to disk
+  directly, never through the shell — eliminated the entire failure class. The final commit
+  used `git commit -F <tempfile>` for the same reason.
+
+### AI PROCESS NOTES (KT Rank 5)
+- **Named review-partner error #1 (chat partner's own):** the pre-flight check was written as
+  "working tree clean," when the same session's own earlier disk read had already listed
+  `SESSION_DELTAS_2026-08-04.txt` as untracked — guaranteeing the criterion would trip on a
+  benign, pre-existing file. A verification criterion written from a template instead of from
+  the evidence already in hand. Same class as the 2026-08-04 test-count error: holding a
+  discipline and applying it to one's own inputs are separate acts.
+- **Named review-partner error #2 (chat partner's own):** the guard "`grep -c 'PRAGMA
+  journal_mode'` must be 1" was falsified by the header text the same partner supplied, which
+  quotes the string `PRAGMA journal_mode = WAL;` inline while describing the trap. Correct
+  expected count was 2 (one comment mention, one real statement at line 56). The predicate was
+  wrong, not the file. Caught because Claude Code refused the mismatch and printed both line
+  numbers. **A verification criterion is only as trustworthy as whoever wrote it, and it can be
+  defeated by content introduced in the same breath.**
+- Both partner errors were caught by the implementation agent stopping, not by the review
+  partner self-correcting. The machinery caught the narrator again — the recurring lesson of
+  this log.
+- One cosmetic item left deliberately unfixed: the Architect's CLAUDE.md hand-edit dropped the
+  trailing EOF newline. Corrected-in-place-at-the-finish-line risk was judged higher than the
+  one-byte benefit; flagged for the next by-hand CLAUDE.md touch rather than re-edited now.
+
+## 2026-08-06 — TASK 2 (SURVEY): busy_timeout site inventory; premise corrected from 0→15000 to 5000→15000
+**Type:** Instrument hygiene survey (survey-and-decide session; no code, no DB mutation, no commit)
+**Status:** E3 — Ratified by Architect 2026-08-06 (Invariant 3)
+**Session:** 2026-08-06. Chat-side Claude as planning/review partner; all terminal commands run by the Architect (grep site list and the in-memory PRAGMA check are E3, Architect's terminal). No Claude Code invocation — nothing was changed.
+
+**Task.** Task 2 is `PRAGMA busy_timeout=15000` on all writer connections, moved from the deferred list to the arc because §15.6 makes it a prerequisite for adding a poll-cadence writer, which F2 is. This session was scoped survey-only: find every SQLite connection in the tree, classify each writer vs reader, and decide four questions the survey surfaced — before any edit is drafted.
+
+**Headline finding — the premise was wrong, and it resizes the task.** CLAUDE.md's sharp-edges bullet and the standing arc both framed this as setting a timeout where there is none: `0 → 15000`. Disk says otherwise. Python's `sqlite3.connect()` applies a default `timeout=5.0`, implemented as `sqlite3_busy_timeout(5000)`. Confirmed at the Architect's terminal: a default connection returns `PRAGMA busy_timeout` `(5000,)`; `timeout=15` returns `(15000,)`. So **every connection in the tree already waits five seconds, not zero.** Task 2 is `5000 → 15000`, a smaller change than scoped. Contention today does not fail instantly — it fails after a five-second stall. The `timeout=15.0` argument form and an explicit `PRAGMA busy_timeout=15000` are proven equivalent on this interpreter, which is live input to the factory memo.
+
+**Site inventory (11 `sqlite3.connect(` sites, grep-confirmed E3, one-to-one with the survey).**
+- **3 production writers:** `storage/snapshots.py:66` (`SnapshotStore._connect()` — the tree's only connection factory, already the PRAGMA home for `journal_mode`/`foreign_keys`); `collectors/nws_cli_collector.py:174` (`collect_city`, raw connect, no PRAGMAs); `collectors/kalshi_observation_collector.py:269` (`collect_all`, raw connect, no PRAGMAs, long-lived across the whole sweep).
+- **3 read-only URI readers:** `scripts/backup_db.py:71, 122, 140` — all `file:...?mode=ro`. Line 122 is the `VACUUM INTO`, which holds a read lock for a full DB copy against a 5-minute writer.
+- **5 test sites:** all against `tmp_path` files, single-process (`test_kalshi_observations.py:94, 101, 346`; `test_snapshots.py:78, 133` — :78 is the lone `UPDATE` in the tree, a deliberate corruption injection).
+- **Zero `busy_timeout` occurrences in source, tree-wide** (grep, E3). The 5000 ms is a library default, written nowhere.
+- **No hidden opener:** the wider net (`connect(|sqlite`) surfaced only the six `self._connect()` callers inside `SnapshotStore` (inherit the factory) and the two `ensure_*(conn)` functions (take `conn` as a parameter, open nothing). No `.bat`/`.sh`/`.xml` shells out to the sqlite3 CLI. Only three Python writers and one Python reader script open the database.
+
+**busy_timeout is per connection, not per database.** In `collect_city`, setting the PRAGMA on `conn` does nothing for the `SnapshotStore` handle opened two lines earlier against the same file. The number of connections needing coverage is not the number of `sqlite3.connect` calls a reader notices — `SnapshotStore` opens a fresh handle per `snapshot()`.
+
+**Real connection count under load.** Not "two collectors." A Kalshi sweep is ~120 short-lived handles: 1 long-lived collector connection plus 2 `SnapshotStore` handles per ticker across ~60 tickers, plus one from each `SnapshotStore.__init__`. F2 adds a third writer at poll cadence whose always-snapshot policy (ruling 4) writes at least five snapshots per poll even when no period rows are inserted. Under WAL, readers never block writers, but there is exactly one writer at a time — so three poll-cadence writers make lock contention a scheduling property, not a hypothesis.
+
+**Rulings this session (R1–R8), each recorded so none is re-litigated:**
+- **R1 — Scope.** Survey-and-decide only. The change is next session. No change prompt drafted.
+- **R2 — Shape.** Ruling *toward* the shared connection factory (not the repeated line), but **not adopted this session.** F2 adds the fourth copy either way, so deciding shape before F2 is the cheaper ordering. Blocker on ruling today: a factory silently switches `foreign_keys=ON` for both collector connections — inert now (collectors' tables declare no FKs; only `snapshot_index` has one, written solely through `SnapshotStore`, which already sets it), but "inert today" is not "inert." Next session: a factory memo (module, call signature, four consumers, what travels with it, per-consumer behavioral change, proposed CLAUDE.md bullet), filed in the Decision Log with a revisit trigger. No factory code until the Architect rules on the memo.
+- **R3 — backup_db.py.** In scope; covered in the memo as a **distinct reader class** with its own reasoning, not folded into "writers." VACUUM INTO holding a read lock for a full copy against a 5-minute writer is the site where a timeout most plausibly matters.
+- **R4 — Config vs literal.** **Literal**, a single named constant in the factory module — not `config.yaml`. Reasoning (recorded so no future reader re-litigates it as a D4 violation): `core/config.py` re-reads and re-parses `config.yaml` on every accessor call, ~120 times per Kalshi sweep. D4 exists to stop operational identifiers (tickers, station IDs, cadences) whose wrongness silently corrupts data from being hardcoded. A lock-wait timeout is a robustness constant with no settlement consequence — not that class.
+- **R5 — The assertion.** Non-negotiable, and in the **same commit** as the change, never a later one. The test must open a connection through the real call site or factory and assert `PRAGMA busy_timeout` returns 15000. A test that builds its own connection and checks the PRAGMA is the code-path-with-no-caller failure. Named explicitly in the memo.
+- **R6 — Contention legibility.** Not folded into Task 2. See Q2.
+- **R7 — Self-contention.** Recorded, not actioned. See Q3.
+- **R8 — Evidence discipline.** See AI Process Notes.
+
+**Queue additions (recorded, not actioned):**
+- **Q1.** CLAUDE.md sharp-edges bullet ("with no `busy_timeout` set") is confirmed false about effective behavior. Ruling: does **not** fold into the false-storage-docstring task (that task is false *storage locations* in docstrings; this is a governance file asserting a false *runtime mechanism*). Becomes an **in-place CLAUDE.md correction bundled into the Task 2 change commit**, so the bullet and the code stop disagreeing in the same commit — same discipline as line 63 last session. Replacement text not drafted yet.
+- **Q2.** Contention invisibility (R6): `SQLITE_BUSY` arrives as `sqlite3.OperationalError`, caught by the broad per-unit handler, logged indistinguishably from a network timeout — so raising the timeout makes the misattribution rarer and therefore harder to ever notice. Queued adjacent to Task 4 (`collection_runs`), where a distinguishable contention signal would live.
+- **Q3.** `collect_ticker` self-contention ordering (R7): nesting `store.snapshot()` inside the outer `with conn:` is safe only by statement ordering and Python's deferred `BEGIN`; a longer timeout converts an instant error into a 15-second hang if that ordering ever changes. Queued adjacent to the tracked `collect_ticker` false-atomicity docstring — same function, related cause, separate task.
+
+### FINDINGS
+- **A sharp-edge note describing ABSENCE OF CONFIGURATION was true about the source text and false about effective behavior — and went unchecked for months.** "The collectors write with no `busy_timeout` set" is literally true (grep confirms zero occurrences in source) and operationally false (the runtime default is 5000 ms). No one ran the one-line runtime check until this session. **A claim about what a system does *not* do is still a claim and still needs evidence.** This is the same defect class as `backup_db.py:6`'s WAL causal claim and the confabulated-artifact failures: an assertion carried forward on plausibility, not verification — here made harder to catch precisely because it asserted an absence, and absences feel self-evident.
+- **The premise correction resized the task before any code existed.** The survey's stated purpose — show every site before changing any — is what created room for the correction to land. Had this been scoped as a mechanical edit, `0 → 15000` would have shipped, over-specifying a timeout against a baseline that was never zero, and the sharp-edges bullet's falseness would have survived the commit unnoticed.
+- **The factory decision is a scope-expansion trap, not a style choice.** Adopting a shared factory silently turns on `foreign_keys` enforcement for two connections currently running without it. Inert today by three separate contingent facts (no FKs on the collector tables; the one FK-bearing table written only through `SnapshotStore`; `journal_mode` persistent in the file header regardless). Three contingent facts holding simultaneously is exactly the configuration that breaks quietly when one changes. Deferring adoption to a memo is the correct handling.
+
+### AI PROCESS NOTES (KT Rank 5)
+
+**Status:** E3 — Ratified by Architect 2026-08-06 (Invariant 3)
+- **The premise correction was the review partner's, arrived at unprompted, and it materially resized the task before any code was written.** The partner flagged the 5000 ms default rather than accepting the `0 → 15000` framing inherited from CLAUDE.md and the arc. This is the survey doing its job: the value of "show me each site before changing any" is realized at exactly the moment a framing assumption turns out to be false.
+- **The partner flagged the 5000 ms claim as CPython knowledge rather than a disk read, and supplied the one command that settles it.** Correct handling of a load-bearing claim that cannot be verified with the tools in hand: name the epistemic status explicitly, and hand over the cheapest command that converts it from testimony to E3 — rather than asserting it flatly or burying the uncertainty.
+- **The partner declined to predict a PRAGMA/`busy_timeout` count, citing last session's falsified predicate, and stated the `sqlite3.connect(` count narrowly instead.** It held at 11. **A predicate holding is not retroactive evidence that predicting was safe.** The narrow scope — one unambiguous, greppable token, no derived count layered on top — is what made it safe, not the outcome. Last session's guard failed because it predicted a count of a string that appeared in the very text supplied alongside it; the safe version predicts only what a single literal grep will return and nothing composed on top of it. Keep the scope narrow; do not read the good outcome as license to widen it.
