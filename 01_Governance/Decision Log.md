@@ -139,3 +139,70 @@ it into this change; or any counted table acquiring a DELETE path, which changes
 the prefix check's soundness argument; or a second database file being ruled under
 option B or C, since backup_db.py generalising to N files is a hard prerequisite
 for that and not a follow-up. Status: E3 Architect ratified. 
+
+2026-08-12: The 2026-08-11 backup verification ruling is SUPERSEDED IN THREE
+PARTICULARS. The ruling itself stands. The predicate defect was real, the
+bounded-prefix replacement is correct, every excluded item stays excluded, and
+nothing below reverses a decision — what follows corrects one causal claim and two
+figures inside a ratified entry, under Invariant 1, by superseding entry rather
+than edit, on the Bootstrap_Log.md:329 precedent.
+
+First, the causal attribution. The entry states that table_counts is read, VACUUM
+INTO runs, the Kalshi sweep writes during that window, and that the window "has
+grown from one second to fifty seconds in eighteen days." That is wrong about
+mechanism. VACUUM INTO runs inside its own read transaction, and under WAL snapshot
+isolation a read transaction's view is fixed when it acquires its snapshot; rows
+committed by another connection after that instant are invisible to it no matter how
+long the page copy runs. The interval that governs whether a snapshot is a superset
+is therefore from the baseline read's snapshot instant to the VACUUM's
+read-transaction acquisition, NOT the copy duration. This was measured, not inferred:
+in a recorded test run a writer demonstrably committed rows while VACUUM INTO was
+executing and none of them appeared in the snapshot. Both intervals scale with file
+size, which is why the correlation held and why 2026-07-24 succeeded at 48 MB and
+every later day failed — so every conclusion in the ratified entry survives unchanged.
+The defect is real, size-driven, compounding, and cannot self-recover. Two supporting
+measurements from the 2026-08-12T01:10Z live run: the VACUUM took 8 seconds against a
+1,059,291,136-byte database, against 50 seconds at 993,738,752 bytes twenty hours
+earlier, so VACUUM duration is dominated by page-cache state and must not be cited as
+a trend; and the baseline read grew from 4 seconds to 10 seconds now that
+kalshi_observations is counted. The interval that actually governs the defect widened
+while the interval the entry cited narrowed.
+
+Second, the exposure figure, already recorded as an open call and now closed. The
+entry sized the loss at roughly 326,930 snapshot_index rows, 246,123 blobs and 901
+MiB, every figure drawn from backup_health.log, which reports only the tables
+COUNTED_TABLES named — inheriting the exact omission the entry was ruling on. The
+sharper figure is at least 157,525 kalshi_observations rows, roughly 94.9% of the
+accrual-critical irreversible stream, against the 166,045 live count of 2026-08-10.
+The error was not the missing number, which was genuinely unreachable at the time;
+it was stating the exposure without flagging that it was incomplete in a known
+direction and probably dominated by the unmeasured term. That exposure is now closed:
+an interim verified VACUUM INTO at 2026-08-11T18:36:45Z to D:\Backups\manual_interim,
+which is deliberately outside the managed generation directory and is NOT a
+generation, and a managed generation at 2026-08-12T01:10:45Z.
+
+Third, the daily backup volume, which is overstated by a factor near six and which
+bears directly on the pruning task the entry schedules next. The entry states that
+resumed backups run near 0.9 GB compressed per day and rising. Measured on the first
+successful run: 157,924,782 bytes, 0.158 GB, from a 1,055,240,192-byte snapshot — a
+6.7x compression ratio identical to the 2026-07-24 generation's 6.74x, so the figure
+is consistent rather than anomalous. The 0.9 GB came from the uncompressed "Snapshot
+created" log line read as if it were the compressed generation. This does not make
+pruning less urgent; it makes the stated mechanism wrong in a direction that flatters
+the runway. A flat 0.9 GB per day against 1,527,661,043,712 bytes free reads as about
+4.6 years. The real driver is that each generation is a full copy of a database
+growing near 95 MiB per collection-day, so generations themselves grow near 14 MB per
+day, and cumulative unpruned storage of 158N + 7N(N-1) megabytes reaches the free
+space at roughly 457 days, near fifteen months. The ruling that pruning is scheduled
+rather than deferred survives and is strengthened, on growth rather than on daily
+volume. Note that this correction does NOT touch the separate ~0.9 GB figure in the
+2026-07-13 entry describing the section 16 market.db duplication cost, which refers to
+the live database size and is correct in that context.
+
+Revisit trigger: any counted table acquiring a DELETE path, which changes the prefix
+check's soundness argument; a second database file ruled under section 16, since
+backup_db.py generalising to N files is a prerequisite; a measured generation
+compression ratio departing materially from 6.7x, or a measured live-database growth
+rate departing materially from 95 MiB per collection-day, either of which invalidates
+the fifteen-month figure; or the pruning task landing, which supersedes the runway
+arithmetic entirely. Status: E3 Architect ratified.
